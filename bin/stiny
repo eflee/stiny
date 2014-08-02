@@ -92,7 +92,8 @@ def main():
             exit(3)
 
     except docopt.DocoptExit as e:
-        print "ERROR: Invalid Arguments!" + e.message
+        print "ERROR: Invalid Arguments!"
+        print e.message
         exit(2)
 
 

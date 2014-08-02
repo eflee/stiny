@@ -5,7 +5,7 @@ setup(
     version="0.1",
     packages=find_packages('src'),
     package_dir={'': 'src'},
-    scripts=[],
+    scripts=['bin/stiny'],
 
     # Project uses reStructuredText, so ensure that the docutils get
     # installed or upgraded on the target machine

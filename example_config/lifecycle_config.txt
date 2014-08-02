@@ -2,7 +2,7 @@
     "Rules": [
         {
             "Status": "Enabled",
-            "Prefix": "365T",
+            "Prefix": "YT",
             "Expiration": {
                 "Days": "365"
             },
@@ -10,7 +10,7 @@
         },
         {
             "Status": "Enabled",
-            "Prefix": "180T",
+            "Prefix": "ST",
             "Expiration": {
                 "Days": 180
             },
@@ -18,7 +18,7 @@
         },
         {
             "Status": "Enabled",
-            "Prefix": "90T",
+            "Prefix": "QT",
             "Expiration": {
                 "Days": 90
             },
@@ -26,15 +26,7 @@
         },
         {
             "Status": "Enabled",
-            "Prefix": "60T",
-            "Expiration": {
-                "Days": 60
-            },
-            "ID": "60 Day Links"
-        },
-        {
-            "Status": "Enabled",
-            "Prefix": "30T",
+            "Prefix": "MT",
             "Expiration": {
                 "Days": 30
             },

@@ -1,0 +1,202 @@
+#!/usr/bin/env python
+__doc__ = """
+Stiny - TinyURLs for Static Backing Stores
+
+Usage:
+  stiny new (<url>) [<name>] [--expiration=<n>] [--config=<config>]
+  stiny validate (<url>) (<name>) [--config=<config>]
+  stiny rm (<name>) [--config=<config>]
+  stiny list [--config=<config>]
+  stiny configure [--config=<config>] [--read]
+
+
+Options:
+  -h --help              Show this screen.
+  -c --config=<config>   Path to configuration file [Default: ~/.stiny/stiny.cfg]
+  -e --expiration=<n>    The number of days until expiration (prepended to the tiny_text for most backing stores)
+  -r --read              Show the contents of the config
+"""
+
+from os.path import expanduser
+from collections import OrderedDict
+import docopt
+import ConfigParser
+from urlparse import urlparse
+from sys import exit
+from stiny.controllers import S3BucketController
+from stiny.controllers import TinyUrlDoesNotExistException, TinyURLExistsException, TooManyNameCollisions
+from stiny.url import StaticURL
+from stiny.url import InvalidURLException, InvalidTinyTextException, InvalidExpirationException
+from stiny import UnknownBackingStoreException
+from pprint import pprint
+
+
+TINY_FORMAT = "http://{domain}/{tiny}"
+
+
+def main():
+    try:
+        args = docopt.docopt(__doc__)
+        try:
+            config_path = expanduser(args['--config'])
+            config = get_configuration(config_path)
+            controller = get_controller(config)
+            domain = config['main']['root_domain_name']
+            url = args['<url>']
+
+            if args['<name>']:
+                tiny_text = urlparse(args['<name>']).path.strip('/')
+            else:
+                tiny_text = None
+
+            expiration = args['--expiration']
+
+            if expiration is not None:
+                try:
+                    valid_expirations = [x for x in config['main']['supported_expirations'].split(',')]
+                except ValueError:
+                    raise InvalidConfigException('supported_expirations not valid in config')
+
+                if expiration not in valid_expirations:
+                    raise InvalidArgumentException("{} is not a supported expiration in config. Suppored expirations are {}"
+                                                   .format(expiration, valid_expirations))
+
+            if args['new']:
+                new(controller, url, tiny_text, expiration, domain)
+            elif args['validate']:
+                validate(controller, url, tiny_text, expiration, domain)
+            elif args['rm']:
+                rm(controller, tiny_text, domain)
+            elif args['list']:
+                list_(controller, domain)
+            elif args['configure']:
+                if args['--read']:
+                    print_config(config)
+                else:
+                    configure(config_path)
+
+        except (UnknownBackingStoreException,
+                InvalidURLException,
+                InvalidTinyTextException,
+                InvalidExpirationException,
+                TinyUrlDoesNotExistException,
+                TinyURLExistsException,
+                TooManyNameCollisions,
+                InvalidConfigException,
+                InvalidArgumentException) as e:
+            print "ERROR:" + e.message
+            exit(1)
+
+        except KeyError as e:
+            print "ERROR: Config value not found: {}".format(e.message)
+            exit(3)
+
+    except docopt.DocoptExit as e:
+        print "ERROR: Invalid Arguments!" + e.message
+        exit(2)
+
+
+def get_controller(config):
+    template = open(expanduser(config['main']['template'])).read()
+    backing_store = config['main']['store']
+    if backing_store == 's3':
+        controller = S3BucketController(template=template,
+                                        initial_tiny_length=config['main']['min_length'],
+                                        max_retries=config['main']['max_retries'],
+                                        bucket_name=config['s3']['bucket_name'],
+                                        region=config['s3']['region'],
+                                        aws_access_key_id=config['s3']['aws_access_key_id'],
+                                        aws_secret_access_key=config['s3']['aws_secret_access_key'])
+    else:
+        raise UnknownBackingStoreException("{store} is an unknown backing store type".format(store=backing_store))
+    return controller
+
+
+def get_configuration(path):
+    parser = ConfigParser.SafeConfigParser()
+    config = OrderedDict()
+    try:
+        with open(path, 'r') as f:
+            parser.readfp(f)
+    except IOError:
+        print "Could not find config!"
+        return config
+
+    for section in parser.sections():
+        config[section] = OrderedDict()
+        for option in parser.options(section):
+            config[section][option] = parser.get(section, option)
+
+    return config
+
+
+def new(controller, url, tiny_text, expiration, domain):
+    surl = StaticURL(url, tiny_text, expiration)
+    controller.put(surl)
+    tiny_link = TINY_FORMAT.format(domain=domain,
+                                   tiny=surl.tiny_text)
+    print "Tiny link {tiny} to {url} created.".format(tiny=tiny_link, url=surl.url)
+
+
+def validate(controller, url, tiny_text, expiration, domain):
+    surl = StaticURL(url, tiny_text, expiration)
+    tiny_link = TINY_FORMAT.format(domain=domain, tiny=surl.tiny_text)
+    if controller.validate(surl):
+        print "Tiny link {tiny} is valid.".format(tiny=tiny_link)
+    else:
+        print "Tiny link {tiny} is NOT valid.".format(tiny=tiny_link)
+
+
+def rm(controller, tiny_text, domain):
+    controller.delete(tiny_text)
+    tiny_link = TINY_FORMAT.format(domain=domain, tiny=tiny_text)
+    print "Tiny link {tiny} deleted.".format(tiny=tiny_link)
+
+
+def list_(controller, domain):
+    format_line = "{:<27}{:<15}{:<100}"
+    print format_line.format("Tiny URL", "Expiration", "Long URL")
+    print format_line.format("-"*25, "-"*13, "-"*98)
+
+    for surl in controller.list():
+        expiration = surl.expiration if surl.expiration else "-"
+        print format_line.format(TINY_FORMAT.format(domain=domain, tiny=surl.tiny_text), expiration, surl.url)
+
+
+def configure(path):
+    config = get_configuration(path)
+    parser = ConfigParser.SafeConfigParser()
+
+    print "Configuring Stiny..."
+
+    for section in config:
+        print "\t{} Section:".format(section)
+        parser.add_section(section)
+        for option in config[section]:
+            input_ = raw_input("\t\t{} [{}]: ".format(option, config[section][option]))
+            if input_ == "":
+                parser.set(section, option, config[section][option])
+            else:
+                parser.set(section, option, input_)
+
+    with open(path, 'w') as f:
+        parser.write(f)
+
+
+def print_config(config):
+    for section in config:
+        print section
+        for option in config[section]:
+            print "\t{option} : {value}".format(option, config[section][option])
+
+
+class InvalidArgumentException(Exception):
+    pass
+
+
+class InvalidConfigException(Exception):
+    pass
+
+
+if __name__ == '__main__':
+    main()

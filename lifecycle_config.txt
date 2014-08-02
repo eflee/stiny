@@ -1,0 +1,76 @@
+{
+    "Rules": [
+        {
+            "Status": "Enabled",
+            "Prefix": "365T",
+            "Expiration": {
+                "Days": "365"
+            },
+            "ID": "1 Year Links"
+        },
+        {
+            "Status": "Enabled",
+            "Prefix": "180T",
+            "Expiration": {
+                "Days": 180
+            },
+            "ID": "180 Day Links"
+        },
+        {
+            "Status": "Enabled",
+            "Prefix": "90T",
+            "Expiration": {
+                "Days": 90
+            },
+            "ID": "90 Day Links"
+        },
+        {
+            "Status": "Enabled",
+            "Prefix": "60T",
+            "Expiration": {
+                "Days": 60
+            },
+            "ID": "60 Day Links"
+        },
+        {
+            "Status": "Enabled",
+            "Prefix": "30T",
+            "Expiration": {
+                "Days": 30
+            },
+            "ID": "30 Day Links"
+        },
+        {
+            "Status": "Enabled",
+            "Prefix": "14T",
+            "Expiration": {
+                "Days": 14
+            },
+            "ID": "14 Day Links"
+        },
+        {
+            "Status": "Enabled",
+            "Prefix": "7T",
+            "Expiration": {
+                "Days": 7
+            },
+            "ID": "7 Day Links"
+        },
+        {
+            "Status": "Enabled",
+            "Prefix": "3T",
+            "Expiration": {
+                "Days": 3
+            },
+            "ID": "3 Day Links"
+        },
+        {
+            "Status": "Enabled",
+            "Prefix": "1T",
+            "Expiration": {
+                "Days": 1
+            },
+            "ID": "1 Day Links"
+        }
+    ]
+}

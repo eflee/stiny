@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="static_tiny_url",
+    name="stiny",
     version="0.1",
     packages=find_packages('src'),
     package_dir={'': 'src'},
@@ -19,7 +19,7 @@ setup(
     # metadata for upload to PyPI
     author="Eli Flesher",
     author_email="eli@eflee.us",
-    description="This package uses a static website cloud provider to create a personal tinyurl service without the need to host a webservice"
+    description="A Command-line Tiny Link solution for static backing stores",
     license="Apache",
     keywords="s3 gcs tinyurl static",
     url="http://eflee.us/tinyurl",  # project home page, if any

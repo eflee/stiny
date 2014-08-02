@@ -1,0 +1,5 @@
+Support setting up the lifecycle rules
+Support setting up the website bucket
+Support signed tinies (with actual expiration, likely using iframe excap)
+
+

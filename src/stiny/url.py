@@ -92,15 +92,16 @@ class URL(object):
 
     @property
     def tiny_text(self):
+        # noinspection PyPep8
         """
-        The tiny_text to be used for URL creation with a smart setter
+                The tiny_text to be used for URL creation with a smart setter
 
-        :setter: Parses the provided tiny_text for the prefix_separator. If present, sets the prefix and the tiny_text \
-        otherwise only sets the tiny text.
-        :return: tiny_text
-        :rtype: str
-        :raises: :class:`stiny.exceptions.InvalidTinyTextException` - if the tiny_text provided is not comprised of alpha-numerics.
-        """
+                :setter: Parses the provided tiny_text for the prefix_separator. If present, sets the prefix and the tiny_text \
+                otherwise only sets the tiny text.
+                :return: tiny_text
+                :rtype: str
+                :raises: :class:`stiny.exceptions.InvalidTinyTextException` - if the tiny_text provided is not comprised of alpha-numerics.
+                """
         return self._tiny_text
 
     @tiny_text.setter
@@ -140,6 +141,7 @@ class URL(object):
         :rtype: str
         """
         prefix = self.prefix + self.prefix_separator if self.prefix else ""
+        # noinspection PyUnusedLocal
         return prefix + "".join(random.choice(string.digits + string.letters) for i in range(int(length)))
 
     @property

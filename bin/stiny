@@ -56,8 +56,9 @@ def main():
                     raise InvalidConfigException('supported_expirations not valid in config')
 
                 if expiration not in valid_expirations:
-                    raise InvalidArgumentException("{} is not a supported expiration in config. Suppored expirations are {}"
-                                                   .format(expiration, valid_expirations))
+                    raise InvalidArgumentException(
+                        "{} is not a supported expiration in config. Suppored expirations are {}"
+                        .format(expiration, valid_expirations))
 
             if args['new']:
                 new(controller, url, tiny_text, expiration, domain)
@@ -99,12 +100,12 @@ def get_controller(config):
     backing_store = config['main']['store']
     if backing_store == 's3':
         controller = S3Controller(template=template,
-                                        initial_tiny_length=config['main']['min_length'],
-                                        max_retries=config['main']['max_retries'],
-                                        bucket_name=config['s3']['bucket_name'],
-                                        region=config['s3']['region'],
-                                        aws_access_key_id=config['s3']['aws_access_key_id'],
-                                        aws_secret_access_key=config['s3']['aws_secret_access_key'])
+                                  initial_tiny_length=config['main']['min_length'],
+                                  max_retries=config['main']['max_retries'],
+                                  bucket_name=config['s3']['bucket_name'],
+                                  region=config['s3']['region'],
+                                  aws_access_key_id=config['s3']['aws_access_key_id'],
+                                  aws_secret_access_key=config['s3']['aws_secret_access_key'])
     else:
         raise UnknownBackingStoreException("{store} is an unknown backing store type".format(store=backing_store))
     return controller
@@ -154,7 +155,7 @@ def rm(controller, tiny_text, domain):
 def list_(controller, domain):
     format_line = "{:<27}{:<15}{:<100}"
     print format_line.format("Tiny URL", "Expiration", "Long URL")
-    print format_line.format("-"*25, "-"*13, "-"*98)
+    print format_line.format("-" * 25, "-" * 13, "-" * 98)
 
     for surl in controller.list():
         expiration = surl.prefix if surl.prefix else "-"

@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+"""
+Note: current a proof of concept to perfect the library
+"""
+
+
 __doc__ = """
 Stiny - TinyURLs for Static Backing Stores
 

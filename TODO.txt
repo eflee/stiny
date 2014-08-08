@@ -1,9 +1,0 @@
-Support setting up the lifecycle rules
-Support setting up the website bucket
-Support signed tinies (with actual expiration, likely using iframe excap)
-Support full create of config directory and files from defaults
-Use FailedTinyActionError
-update bin/stiny to use prefix for expiration
-debug on library
-replace prints in stiny with log
-Add prefix_separator to bin/stiny and config.

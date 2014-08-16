@@ -1,7 +1,7 @@
 import stiny.templates
-from stiny.exceptions import CannedTemplateNotFoundException, MalFormedTemplateConfig
+from stiny.exceptions import CannedTemplateNotFoundException, MalFormedTemplateConfig, UnknownStorageTypeException
 from os.path import expanduser, exists
-from copy import copy
+from copy import copy, deepcopy
 
 SUPPORTED_BACKING_STORES = ['s3']
 
@@ -9,7 +9,6 @@ SUPPORTED_BACKING_STORES = ['s3']
 class GlobalConfiguration(object):
     CONFIG_SECTION_NAME = 'MAIN'
     _configurables = ['domain_name', 'store_type', 'template_config', 'min_length', 'max_retries']
-
 
     def __init__(self, domain_name, store_type, template_config="CANNED:META_REDIRECT_NO_BODY",
                  min_length=3, max_retries=5):
@@ -30,8 +29,10 @@ class GlobalConfiguration(object):
             self.store_type = store_type
         else:
             raise UnknownStorageTypeException('{} is not a supported storage type'.format(store_type))
+
         self.template_config = template_config
         self.template = self.load_template(template_config)
+
         self.min_length = min_length
         self.max_retries = max_retries
 
@@ -63,3 +64,44 @@ class GlobalConfiguration(object):
         for config_key in self._configurables:
             configuration[copy(config_key)] = copy(getattr(self, config_key))
         return configuration
+
+    @classmethod
+    def del_configurable(cls, *args):
+        for configurable in args:
+            if configurable in cls._configurables:
+                cls._configurables.remove(configurable)
+
+    @classmethod
+    def add_configurable(cls, *args):
+        for configurable in args:
+            if configurable not in cls._configurables:
+                cls._configurables.append(configurable)
+
+    @classmethod
+    def configurables(cls):
+        return deepcopy(cls._configurables)
+
+
+class S3Configuration(GlobalConfiguration)
+
+    S3Configuration.add_configurable("region", "bucket_name", "aws_access_key_id", "aws_secret_access_key")
+
+    def __init__(self, region, bucket_name, aws_access_key_id, aws_secret_access_key, *args, **kwargs):
+        """
+        Object to manage S3 Configuration
+
+        :param str region:
+        :param str bucket_name:
+        :param str aws_access_key_id:
+        :param str aws_secret_access_key:
+        :param args: GlobalConfiguration: domain_name, store_type
+        :param kwargs: GlobalConfiguration: template_config, min_length, max_retries
+        """
+
+        super(S3Configuration, self).__init__(*args, **kwargs)
+
+        self.region = region
+        self.bucket_name = bucket_name
+        self.aws_access_key_id = aws_access_key_id
+        self.aws_secret_access_key = aws_secret_access_key
+

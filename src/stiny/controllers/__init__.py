@@ -113,9 +113,6 @@ class Controller(object):
         else:
             self.template = Template(template)
 
-    def generate_contents(self, url):
-        return "\n".join([line for line in self.template.generate(url=url)])
-
     @abstractmethod
     def put(self, url):
         """

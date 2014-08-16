@@ -31,7 +31,7 @@ from sys import exit
 from stiny.controllers.s3 import S3Controller
 from stiny.url import URL
 from stiny.exceptions import UnknownBackingStoreException, InvalidTinyTextException, \
-    InvalidURLException, TooManyNameCollisions, TinyURLExistsException, TinyUrlDoesNotExistException
+    InvalidURLException, UnableToAutogenerateTinyText, TinyURLExistsException, TinyUrlDoesNotExistException
 
 
 TINY_FORMAT = "http://{domain}/{tiny}"
@@ -84,7 +84,7 @@ def main():
                 InvalidTinyTextException,
                 TinyUrlDoesNotExistException,
                 TinyURLExistsException,
-                TooManyNameCollisions,
+                UnableToAutogenerateTinyText,
                 InvalidConfigException,
                 InvalidArgumentException) as e:
             print "ERROR:" + e.message

@@ -1,13 +1,6 @@
 __author__ = 'eflee'
 
 
-class UnknownBackingStoreException(Exception):
-    """
-    Raised when the configured backing stor eis unrecognized
-    """
-    pass
-
-
 class FailedTinyActionError(Exception):
     pass
 
@@ -54,14 +47,23 @@ class CannedTemplateNotFoundException(Exception):
     pass
 
 
+class InvalidConfig(Exception):
+    """
+    Raised if the config provided is not valid
+    """
+    pass
+
+
 class MalFormedTemplateConfig(Exception):
     """
     Raised if the template config value provided is not valid (e.g. doesn't start with FILE: or CANNED:)
     """
     pass
 
+
 class UnknownStorageTypeException(Exception):
     """
     Raised if a backing store is provided in the Global config that is unrecognized
     """
     pass
+

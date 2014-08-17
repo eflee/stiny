@@ -1,5 +1,5 @@
 .. Static Index Generator License Information
-   Tue Jul 29 15:59:26 2014.
+Tue Jul 29 15:59:26 2014.
 
 License
 =======
@@ -7,6 +7,7 @@ License
 The Static Index Generator is licensed under the Apache license, the text of which follows::
 
                                  Apache License
+
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
 

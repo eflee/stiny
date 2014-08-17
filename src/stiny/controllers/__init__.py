@@ -86,13 +86,14 @@ class Controller(object):
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self, template, prefix_separator=".", tiny_length=4, max_retries=5, overwrite=False):
+    def __init__(self, template, prefix_separator=".", tiny_length=4, max_retries=5, overwrite=False, analytics=None):
         self.prefix_separator = prefix_separator
         self.initial_tiny_length = tiny_length
         self.max_retries = max_retries
         self.overwrite = overwrite
         self._template = None
         self.template = template
+        self.analytics = analytics
 
     @property
     def template(self):
@@ -222,7 +223,8 @@ class Controller(object):
         :param url: The url to be encoded
         :type url: stiny.url.URL
         """
-        contents = "\n".join([line for line in self.template.generate(url=url)])
+
+        contents = "\n".join([line for line in self.template.generate(url=url, analytics=self.analytics)])
         sio = StringIO(contents)
         return sio
 

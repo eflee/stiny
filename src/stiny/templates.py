@@ -18,8 +18,8 @@ from jinja2 import Template as _Template
 # noinspection PyUnresolvedReferences
 import stiny.templates
 
-from .configuration import Invalid
-from .exceptions import MalformedTemplateConfig, TemplateNotFoundException
+from configuration import Invalid
+from exceptions import MalformedTemplateConfig, TemplateNotFoundException
 
 
 # noinspection PyPep8

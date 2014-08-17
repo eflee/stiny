@@ -1,7 +1,8 @@
 import re
 import random
 import string
-from stiny.exceptions import InvalidTinyTextException, InvalidURLException
+
+from exceptions import InvalidTinyTextException, InvalidURLException
 
 
 class URL(object):

@@ -1,7 +1,14 @@
+"""
+Defines the exception classes used throughut the stiny code for convenient reference.
+"""
+
 __author__ = 'eflee'
 
 
 class FailedTinyActionError(Exception):
+    """
+    Generic exception used to encapsulate the errors from the storage client
+    """
     pass
 
 
@@ -40,7 +47,14 @@ class TinyUrlDoesNotExistException(Exception):
     pass
 
 
-class CannedTemplateNotFoundException(Exception):
+class MalformedTemplateConfig(Exception):
+    """
+    Raised if the template config string if not valid, i.e. starts with "CANNED:" or "FILE:"
+    """
+    pass
+
+
+class TemplateNotFoundException(Exception):
     """
     Raised if a canned template is provided in config and cannot be found
     """
@@ -54,16 +68,8 @@ class InvalidConfig(Exception):
     pass
 
 
-class MalFormedTemplateConfig(Exception):
+class UnknownConfigError(Exception):
     """
-    Raised if the template config value provided is not valid (e.g. doesn't start with FILE: or CANNED:)
-    """
-    pass
-
-
-class UnknownStorageTypeException(Exception):
-    """
-    Raised if a backing store is provided in the Global config that is unrecognized
+    Raise if the requsted configuration values are not set
     """
     pass
-

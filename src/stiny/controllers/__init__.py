@@ -52,13 +52,14 @@ controller
 """
 
 from abc import ABCMeta, abstractmethod
+from StringIO import StringIO
 
 from jinja2 import Template
 
 from ..url import URL
 from ..templates import get_template
 from s3 import S3Controller
-from ..exceptions import UnsupportedStorageTypeException
+from ..exceptions import UnsupportedStorageTypeException, TinyURLExistsException, UnableToAutogenerateTinyText
 
 
 class Controller(object):
@@ -85,9 +86,9 @@ class Controller(object):
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self, template, prefix_separator=".", initial_tiny_length=4, max_retries=5, overwrite=False):
+    def __init__(self, template, prefix_separator=".", tiny_length=4, max_retries=5, overwrite=False):
         self.prefix_separator = prefix_separator
-        self.initial_tiny_length = initial_tiny_length
+        self.initial_tiny_length = tiny_length
         self.max_retries = max_retries
         self.overwrite = overwrite
         self._template = None
@@ -192,6 +193,38 @@ class Controller(object):
         if 'prefix_seperator' not in kwargs:
             kwargs['prefix_separator'] = self.prefix_separator
         return URL(*args, **kwargs)
+
+    def _select_tiny_text(self, url):
+        """
+        This method selects the tiny_text for the url by one of a number of methods. If the tiny text was provided \
+        with the URL, it uses that and errors if it exists and overwrite it not set. Otherwise, it randomly generates \
+        the tiny_text.
+        """
+        if not url.tiny_text_provided:
+            retries = 0
+            while url.tiny_text is None and retries < self.max_retries:
+                url.tiny_text = url.generate_tiny_text(self.initial_tiny_length)
+                if self.exists(url.get_tiny_uri()):
+                    retries += 1
+                    url.tiny_text = None
+
+            if url.tiny_text is None:
+                raise UnableToAutogenerateTinyText(
+                    "Unable to generate tiny name, increase retries or increase key start length or provide a name")
+
+        else:
+            if not self.overwrite and self.exists(url.get_tiny_uri()):
+                raise TinyURLExistsException("{} already exists".format(url.get_tiny_uri()))
+
+    def _get_contents_fp(self, url):
+        """
+        Returns a file pointer to the contents of the file using StringIO.
+        :param url: The url to be encoded
+        :type url: stiny.url.URL
+        """
+        contents = "\n".join([line for line in self.template.generate(url=url)])
+        sio = StringIO(contents)
+        return sio
 
 
 def get_controller(config):

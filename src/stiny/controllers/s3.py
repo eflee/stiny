@@ -1,7 +1,10 @@
+import gzip
+
 import boto.s3
-from stiny.controllers import Controller
-from stiny.exceptions import TinyURLExistsException, UnableToAutogenerateTinyText, TinyUrlDoesNotExistException
-from stiny.url import URL
+
+from . import Controller
+from ..exceptions import TinyUrlDoesNotExistException
+from ..url import URL
 
 
 class S3Controller(Controller):
@@ -12,12 +15,12 @@ class S3Controller(Controller):
     in place that supports the expiration rules of the StaticURLs
     """
 
-    def __init__(self, bucket_name, region, aws_access_key_id, aws_secret_access_key, gzip = True, *args, **kwargs):
+    def __init__(self, bucket_name, region, aws_access_key_id, aws_secret_access_key, compress=True, *args, **kwargs):
         """
         :param template: The template string or Template instance for the jinja2 template used to create the
         contents of the tiny
         :type template: str or jinja2.Template
-        :param int initial_tiny_length: The length to try for autogenerating tiny text
+        :param int tiny_length: The length to try for autogenerating tiny text
         :param int max_retries: The max number if attempts to generate a unique tiny
         :param boolean overwrite: Overwrite (if tiny text is provided)
         :param str bucket_name: The name of the S3 website bucket
@@ -32,49 +35,47 @@ class S3Controller(Controller):
                                           aws_secret_access_key=aws_secret_access_key)
 
         self._bucket = _conn.get_bucket(bucket_name, validate=False)
-        self.gzip = gzip
+        self._compression = compress
 
     def put(self, url):
         """
         Put the tiny url to the backing store.
         If the tiny_text is provided in the url, it will be used (and overwritten as specified)
         Otherwise, it will attempt to generate non-conflicting tiny text
-        :param str url: the stiny.utl.StaticURL to be generated
+        :param url: the url to be generated
+        :type url: stiny.url.URL
         :raises TooManyNameCollisions: if we're unable to autogenerate a tiny_text name
         :raises TinyURLExistsException: if the provided tiny exists and we're not overwriting
+
+        .. note::
+        This method sets the necessary S3 metadata to make S3 website servie the objet appropriately. Most notably, \
+        this sets Content-Type to text/html and Content-Encoding to gzip if compression is set.
         """
 
-        if not url.tiny_text_provided:
-            self._select_available_tiny_text(url)
-        else:
-            if not self.overwrite and self.exists(url.get_tiny_uri()):
-                raise TinyURLExistsException("{} already exists".format(url.get_tiny_uri()))
+        if url.tiny_text is None:
+            self._select_tiny_text(url)
 
         tiny_key = self._bucket.new_key(key_name=url.get_tiny_uri())
+
         tiny_key.set_metadata("tiny_url", url.url)
         tiny_key.set_metadata("Content-Type", "text/html")
-        tiny_key.set_contents_from_string(self._generate_contents(url), policy="public-read")
+        if self._compression:
+            tiny_key.set_metadata("Content-Encoding", "gzip")
 
-    def _select_available_tiny_text(self, url):
-        key_selected = False
-        retries = 0
-        tiny_text_length = self.initial_tiny_length
+        sio = self._get_contents_fp(url)
+        tiny_key.set_contents_from_file(fp=sio, policy="public-read")
+        sio.close()
 
-        while not key_selected and retries < self.max_retries:
-            url.tiny_text = url.generate_tiny_text(tiny_text_length)
-            if not self.exists(url.get_tiny_uri()):
-                key_selected = True
-                break
-            else:
-                if retries > 1:
-                    # increase length on the second collision
-                    tiny_text_length += 1
-                retries += 1
-
-        if not key_selected:
-            url.tiny_text = None
-            raise UnableToAutogenerateTinyText(
-                "Unable to generate tiny name, increase retries or increase key start length or provide a name")
+    def _get_contents_fp(self, url):
+        """
+        Returns a file pointer to the contents of the file using StringIO (and GzipFile).
+        :param url: The url to be encoded
+        :type url: stiny.url.URL
+        """
+        sio = super(S3Controller, self)._get_contents_fp(url)
+        if self._compression:
+            sio = gzip.GzipFile(fileobj=sio, mode='r')
+        return sio
 
     def delete(self, url):
         """
@@ -124,6 +125,3 @@ class S3Controller(Controller):
         :return: Boolean of validity
         """
         return self.exists(url) and self._bucket.get_key(url.get_tiny_uri()).get_metadata("tiny_url") == url.url
-
-    def _generate_contents(self, url):
-        return "\n".join([line for line in self.template.generate(url=url)])

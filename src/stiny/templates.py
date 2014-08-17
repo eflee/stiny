@@ -17,8 +17,7 @@ from jinja2 import Template as _Template
 # In order to perform module introspection with hasattr, getattr
 # noinspection PyUnresolvedReferences
 import stiny.templates
-
-from configuration import Invalid
+from configuration import valid_template_value, Invalid
 from exceptions import MalformedTemplateConfig, TemplateNotFoundException
 
 
@@ -75,23 +74,6 @@ META_REDIRECT_GOOGLE_ANALYTICS = \
     """
 
 
-def valid_template_value(value):
-    """
-    Validation function for template type in configuration schema
-    :param value: The configured template value
-    :type value: str
-    :return: True or False based on validity
-    """
-    if not isinstance(value, (str, unicode)):
-        raise Invalid("Template values must be strings")
-    else:
-        if value.startswith("CANNED:") or value.startswith("FILE:"):
-            return value
-        else:
-            raise Invalid("Template values must start with 'CANNED:' or 'FILE:' and be the name of a canned template" +
-                          " in stiny.templates or the path to a jinja2 template")
-
-
 def get_template(template_config):
     """
     Returns the template based on the config string
@@ -110,7 +92,6 @@ def get_template(template_config):
     template_value = template_config.split(":")[1]
 
     if 'CANNED:' in template_config:
-        print "here"
         if hasattr(stiny.templates, template_value):
             return _Template(getattr(stiny.templates, template_value))
         else:

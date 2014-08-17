@@ -12,7 +12,6 @@ from voluptuous import Schema, Required, Optional, All, In, Invalid, Coerce, Mul
 from boto.s3 import regions as _s3_regions
 
 from exceptions import InvalidConfig, UnknownConfigError
-from templates import valid_template_value
 
 
 def _string_list_split(value):
@@ -26,6 +25,23 @@ def _string_list_split(value):
         return value.split(',')
     except AttributeError:
         raise Invalid("Must be of type str or unicode")
+
+
+def valid_template_value(value):
+    """
+    Validation function for template type in configuration schema
+    :param value: The configured template value
+    :type value: str
+    :return: True or False based on validity
+    """
+    if not isinstance(value, (str, unicode)):
+        raise Invalid("Template values must be strings")
+    else:
+        if value.startswith("CANNED:") or value.startswith("FILE:"):
+            return value
+        else:
+            raise Invalid("Template values must start with 'CANNED:' or 'FILE:' and be the name of a canned template" +
+                          " in stiny.templates or the path to a jinja2 template")
 
 
 class StinyConfiguration(object):
@@ -190,3 +206,5 @@ class StinyConfiguration(object):
         :returns dict: The Voluptuous Schema
         """
         return _deepcopy(self._CONFIG_SCHEMA)
+
+

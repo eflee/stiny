@@ -1,9 +1,10 @@
 import gzip
+from StringIO import StringIO
 
 import boto.s3
 
-from . import Controller
 from ..exceptions import TinyUrlDoesNotExistException
+from controller import Controller
 from ..url import URL
 
 
@@ -72,9 +73,17 @@ class S3Controller(Controller):
         :param url: The url to be encoded
         :type url: stiny.url.URL
         """
-        sio = super(S3Controller, self)._get_contents_fp(url)
+
         if self._compression:
-            sio = gzip.GzipFile(fileobj=sio, mode='r')
+            sio = StringIO()
+            gio = gzip.GzipFile(
+                filename=url.tiny_text, mode='wb', fileobj=sio)
+            gio.write(super(S3Controller, self)._get_contents(url))
+            gio.close()
+            sio.seek(0)
+        else:
+            sio = super(S3Controller, self)._get_contents_fp(url)
+
         return sio
 
     def delete(self, url):

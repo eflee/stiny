@@ -11,8 +11,8 @@ from ConfigParser import ConfigParser, SafeConfigParser
 from voluptuous import Schema, Required, Optional, All, In, Invalid, Coerce, MultipleInvalid
 from boto.s3 import regions as _s3_regions
 
-from stiny.exceptions import InvalidConfig, UnknownConfigError
-from stiny.templates import valid_template_value
+from .exceptions import InvalidConfig, UnknownConfigError
+from .templates import valid_template_value
 
 
 def _string_list_split(value):

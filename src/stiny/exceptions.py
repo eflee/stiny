@@ -73,3 +73,10 @@ class UnknownConfigError(Exception):
     Raise if the requsted configuration values are not set
     """
     pass
+
+
+class UnsupportedStorageTypeException(Exception):
+    """
+    Raised if the storage type configured is not supported
+    """
+    pass

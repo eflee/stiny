@@ -22,7 +22,7 @@ setup(
     description="A Command-line Tiny Link solution for static backing stores",
     license="Apache",
     keywords="s3 gcs tinyurl static",
-    url="http://eflee.us/tinyurl",  # project home page, if any
+    url="http://elif.us/stiny",  # project home page, if any
     test_suite='test',
 
     # could also include long_description, download_url, classifiers, etc.

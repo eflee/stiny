@@ -1,5 +1,6 @@
 import gzip
 from StringIO import StringIO
+from datetime import datetime
 
 import boto.s3
 
@@ -67,6 +68,8 @@ class S3Controller(Controller):
         tiny_key.set_contents_from_file(fp=sio, policy="public-read")
         sio.close()
 
+        url.last_modified = datetime.now()
+
     def _get_contents_fp(self, url):
         """
         Returns a file pointer to the contents of the file using StringIO (and GzipFile).
@@ -109,7 +112,9 @@ class S3Controller(Controller):
             try:
                 akey = self._bucket.get_key(key.key)
                 url = akey.metadata["tiny_url"]
-                yield URL(url=url, tiny_text=key.key, prefix_separator=self.prefix_separator)
+                surl = URL(url=url, tiny_text=key.key, prefix_separator=self.prefix_separator)
+                surl.last_modified = datetime.strptime(akey.last_modified, "%a, %d %b %Y %H:%M:%S %Z")
+                yield surl
             except KeyError:
                 continue
 

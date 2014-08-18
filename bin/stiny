@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 """
-Note: current a proof of concept to perfect the library
+The CLI for teh stiny library. Provides the basic creation, valiation, deletion and listing if tiny urls. Also \
+provides configuration and bootstrapping.
 """
-
 
 __doc__ = """
 Stiny - TinyURLs for Static Backing Stores
 
 Usage:
-  stiny new (<url>) [<name>] [--expiration=<n>] [--config=<config>]
+  stiny new (<url>) [<name>] [--config=<config>]
   stiny validate (<url>) (<name>) [--config=<config>]
   stiny rm (<name>) [--config=<config>]
   stiny list [--config=<config>]
@@ -18,33 +18,50 @@ Usage:
 Options:
   -h --help              Show this screen.
   -c --config=<config>   Path to configuration file [Default: ~/.stiny/stiny.cfg]
-  -e --expiration=<n>    The number of days until expiration (prepended to the tiny_text for most backing stores)
   -r --read              Show the contents of the config
 """
 
-from os.path import expanduser
-from collections import OrderedDict
-import docopt
-import ConfigParser
+from datetime import datetime
+from os.path import expanduser, exists
 from urlparse import urlparse
 from sys import exit
-from stiny.controllers.s3 import S3Controller
+
+import docopt
+
+from stiny.controllers import get_controller
 from stiny.url import URL
-from stiny.exceptions import UnknownBackingStoreException, InvalidTinyTextException, \
-    InvalidURLException, UnableToAutogenerateTinyText, TinyURLExistsException, TinyUrlDoesNotExistException
+from stiny.exceptions import FailedTinyActionError, InvalidTinyTextException, InvalidURLException, \
+    MalformedTemplateConfig, TemplateNotFoundException, UnsupportedStorageTypeException, UnknownConfigError, \
+    ConfigNotFoundError, InvalidConfig, UnableToAutogenerateTinyText, TinyURLExistsException, \
+    TinyUrlDoesNotExistException
+from stiny.configuration import StinyConfiguration
 
 
 TINY_FORMAT = "http://{domain}/{tiny}"
 
 
 def main():
+    """
+    Handles setting up parameters from DOCOPT, calling functions based on parameters.
+    Also handles error-exit conditions from exceptions thrown by library.
+    :return:
+    """
     try:
         args = docopt.docopt(__doc__)
-        try:
-            config_path = expanduser(args['--config'])
+
+        # opening config file
+        config_path = expanduser(args['--config'])
+
+        if args['configure'] and not args['--read']:
+            configure(config_path)
+        else:
             config = get_configuration(config_path)
+
+            # getting storage controller
             controller = get_controller(config)
-            domain = config['main']['root_domain_name']
+
+            # getting tiny parameters
+            domain = config.get('main', 'root_domain_name')
             url = args['<url>']
 
             if args['<name>']:
@@ -52,154 +69,154 @@ def main():
             else:
                 tiny_text = None
 
-            expiration = args['--expiration']
-
-            if expiration is not None:
-                try:
-                    valid_expirations = [x for x in config['main']['supported_expirations'].split(',')]
-                except ValueError:
-                    raise InvalidConfigException('supported_expirations not valid in config')
-
-                if expiration not in valid_expirations:
-                    raise InvalidArgumentException(
-                        "{} is not a supported expiration in config. Suppored expirations are {}"
-                        .format(expiration, valid_expirations))
-
             if args['new']:
-                new(controller, url, tiny_text, expiration, domain)
+                new(controller, url, tiny_text, domain)
             elif args['validate']:
-                validate(controller, url, tiny_text, expiration, domain)
+                validate(controller, url, tiny_text, domain)
             elif args['rm']:
                 rm(controller, tiny_text, domain)
             elif args['list']:
                 list_(controller, domain)
-            elif args['configure']:
-                if args['--read']:
-                    print_config(config)
-                else:
-                    configure(config_path)
+            elif args['configure'] and args['--read']:
+                print_config(config)
 
-        except (UnknownBackingStoreException,
-                InvalidURLException,
-                InvalidTinyTextException,
-                TinyUrlDoesNotExistException,
-                TinyURLExistsException,
-                UnableToAutogenerateTinyText,
-                InvalidConfigException,
-                InvalidArgumentException) as e:
-            print "ERROR:" + e.message
-            exit(1)
-
-        except KeyError as e:
-            print "ERROR: Config value not found: {}".format(e.message)
-            exit(3)
-
+    # Failure to parse parameters
     except docopt.DocoptExit as e:
-        print "ERROR: Invalid Arguments!"
-        print e.message
+        print("ERROR: Insufficient or incorrect paramters supplied.")
+        print(e.message)
+        exit(1)
+
+    except (FailedTinyActionError,
+            InvalidTinyTextException,  # If the tiny text provided is not valid
+            InvalidURLException,  # If the url provided is not valid
+            MalformedTemplateConfig,  #If the template config value does not begin with CANNED: or FILE:
+            TemplateNotFoundException,  #If the provided template config cannot be found
+            TinyUrlDoesNotExistException,  #If we try to delete a tinyurl does not exist
+            TinyURLExistsException,  #If we try to overwrite a tiny that does exist and have not specified overwrite
+            UnableToAutogenerateTinyText,  # If we get too many collisions when auto-generating the tiny text
+    ) as e:
+        print("ERROR:" + e.message)
         exit(2)
 
+    # These crop up in the event of issues in the config file
+    except (InvalidConfig,  # Config schema failed to validate
+            UnknownConfigError,  #There are missing config values that are not required in the schema
+            UnsupportedStorageTypeException,  #The storage type set is not implemented
+            ConfigNotFoundError  # The config file cannot be found
+    ) as e:
+        print("CONFIG ERROR: {}".format(e.message))
+        exit(3)
 
-def get_controller(config):
-    template = open(expanduser(config['main']['template'])).read()
-    backing_store = config['main']['store']
-    if backing_store == 's3':
-        controller = S3Controller(template=template,
-                                  initial_tiny_length=config['main']['min_length'],
-                                  max_retries=config['main']['max_retries'],
-                                  bucket_name=config['s3']['bucket_name'],
-                                  region=config['s3']['region'],
-                                  aws_access_key_id=config['s3']['aws_access_key_id'],
-                                  aws_secret_access_key=config['s3']['aws_secret_access_key'])
-    else:
-        raise UnknownBackingStoreException("{store} is an unknown backing store type".format(store=backing_store))
-    return controller
-
-
-def get_configuration(path):
-    parser = ConfigParser.SafeConfigParser()
-    config = OrderedDict()
-    try:
-        with open(path, 'r') as f:
-            parser.readfp(f)
-    except IOError:
-        print "Could not find config!"
-        return config
-
-    for section in parser.sections():
-        config[section] = OrderedDict()
-        for option in parser.options(section):
-            config[section][option] = parser.get(section, option)
-
-    return config
+    # Unhandled exception
+    except Exception as e:
+        print("CRITICAL ERROR - UNHANDLED TERMINATION")
+        print(e.message)
+        exit(99)
 
 
-def new(controller, url, tiny_text, expiration, domain):
-    surl = URL(url, tiny_text, expiration)
+def new(controller, url, tiny_text, domain):
+    """
+    Handles creating a new URL
+    :param controller: The controller object for the configured storage
+    :param url: The url to link to
+    :param tiny_text: The tiny_text, if provided
+    :param domain: The root domain
+    """
+    surl = URL(url, tiny_text)
     controller.put(surl)
     tiny_link = TINY_FORMAT.format(domain=domain,
                                    tiny=surl.get_tiny_uri())
-    print "Tiny link {tiny} to {url} created.".format(tiny=tiny_link, url=surl.url)
+    print("Tiny link {tiny} to {url} created.".format(tiny=tiny_link, url=surl.url))
 
 
-def validate(controller, url, tiny_text, expiration, domain):
-    surl = URL(url, tiny_text, expiration)
+def validate(controller, url, tiny_text, domain):
+    """
+    Handles validating an existing url
+    :param controller: The controller object for the configured storage
+    :param url: The url to link to
+    :param tiny_text: The tiny_text, if provided
+    :param domain: The root domain
+    """
+    surl = URL(url, tiny_text)
     tiny_link = TINY_FORMAT.format(domain=domain, tiny=surl.get_tiny_uri())
     if controller.validate(surl):
-        print "Tiny link {tiny} is valid.".format(tiny=tiny_link)
+        print("Tiny link {tiny} is valid.".format(tiny=tiny_link))
     else:
-        print "Tiny link {tiny} is NOT valid.".format(tiny=tiny_link)
+        print("Tiny link {tiny} is NOT valid.".format(tiny=tiny_link))
 
 
 def rm(controller, tiny_text, domain):
+    """
+    Handles deleting an existing url
+    :param controller: The controller object for the configured storage
+    :param tiny_text: The tiny_text
+    :param domain: The root domain
+    """
     controller.delete(tiny_text)
     tiny_link = TINY_FORMAT.format(domain=domain, tiny=tiny_text)
-    print "Tiny link {tiny} deleted.".format(tiny=tiny_link)
+    print("Tiny link {tiny} deleted.".format(tiny=tiny_link))
 
 
 def list_(controller, domain):
-    format_line = "{:<27}{:<15}{:<100}"
-    print format_line.format("Tiny URL", "Expiration", "Long URL")
-    print format_line.format("-" * 25, "-" * 13, "-" * 98)
+    """
+    Handles print a time-sotred list of existing urls
+    :param controller: The controller object for the configured storage
+    :param domain: The root domain
+    """
+    format_line = "{:<28}{:<22}{:<172}"
+    print(format_line.format("Create Date", "Tiny URL", "Long URL"))
+    print(format_line.format("-" * 26, "-" * 20, "-" * 170))
 
-    for surl in controller.list():
-        expiration = surl.prefix if surl.prefix else "-"
-        print format_line.format(TINY_FORMAT.format(domain=domain, tiny=surl.get_tiny_uri()), expiration, surl.url)
+    for surl in sorted(controller.list(), key=lambda x: x.last_modified):
+        print(format_line.format(datetime.strftime(surl.last_modified, "%a, %d %b %Y %H:%M:%S %Z"),
+                                 TINY_FORMAT.format(domain=domain, tiny=surl.get_tiny_uri()),
+                                 surl.url))
 
 
-def configure(path):
-    config = get_configuration(path)
-    parser = ConfigParser.SafeConfigParser()
+def get_configuration(config_path):
+    if not exists(config_path):
+        raise (ConfigNotFoundError("The configuration file ({}) could not be found!".format(config_path)))
+    else:
+        with open(config_path) as f:
+            config = StinyConfiguration(f)
+        return config
 
-    print "Configuring Stiny..."
 
-    for section in config:
-        print "\t{} Section:".format(section)
-        parser.add_section(section)
-        for option in config[section]:
-            input_ = raw_input("\t\t{} [{}]: ".format(option, config[section][option]))
+def configure(config_path):
+    if exists(config_path):
+        config = get_configuration(config_path)
+    else:
+        config = None
+
+    new_config = StinyConfiguration(None)
+
+    print("Configuring Stiny...")
+
+    for section in new_config.sections():
+        print("\t{} Section:".format(section))
+        for option in new_config.options(section):
+            default = config.get(section, option) if config and config.has(section, option) else None
+            input_ = raw_input("\t\t{} [{}]: ".format(option, default))
             if input_ == "":
-                parser.set(section, option, config[section][option])
+                new_config.set(section, option, default)
             else:
-                parser.set(section, option, input_)
+                new_config.set(section, option, input_)
 
-    with open(path, 'w') as f:
-        parser.write(f)
+    print("\n\nConfiguration:")
+    print_config(new_config)
+    with open(config_path, 'w') as f:
+        new_config.write(f)
 
 
 def print_config(config):
-    for section in config:
-        print section
-        for option in config[section]:
-            print "\t{option} : {value}".format(option, config[section][option])
-
-
-class InvalidArgumentException(Exception):
-    pass
-
-
-class InvalidConfigException(Exception):
-    pass
+    """
+    Handles printing the current configuration
+    :param config: The StinyConfiguration object
+    """
+    for section in config.sections():
+        print(section)
+        for option in config.options(section):
+            print("\t{option} : {value}".format(option=option, value=config.get(section, option)))
 
 
 if __name__ == '__main__':

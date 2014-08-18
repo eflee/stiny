@@ -14,19 +14,6 @@ from boto.s3 import regions as _s3_regions
 from exceptions import InvalidConfig, UnknownConfigError
 
 
-def _string_list_split(value):
-    """
-    Splits a comma delimited string into a list
-    :param value: A comma delimited list as a string
-    :type value: str
-    :return: list
-    """
-    try:
-        return value.split(',')
-    except AttributeError:
-        raise Invalid("Must be of type str or unicode")
-
-
 def valid_template_value(value):
     """
     Validation function for template type in configuration schema
@@ -59,23 +46,29 @@ class StinyConfiguration(object):
             Required("storage"): In(SUPPORTED_STORAGE),
             Required("min_length", default=3): Coerce(int),
             Required("max_retries", default=5): Coerce(int),
-            Optional("expirations"): _string_list_split},
+            Optional("analytics_id"): Coerce(str)},
          Optional("s3"): {
              Required("region"): All(Coerce(str), In(S3_REGIONS)),
              Required("bucket_name"): Coerce(str),
              Required("aws_access_key_id"): Coerce(str),
-             Required("aws_secret_access_key"): Coerce(str)}
+             Required("aws_secret_access_key"): Coerce(str),
+             Optional("compress"): Coerce(int)}
          })
 
-    def __init__(self, configuration):
+    def __init__(self, configuration=None):
         """
         Parses the configuraiton file for validity and returns a ConfigParser like object which support set and get \
         among other common methods
         :param configuration: The ConfigParser, file, or dict representing the configuration
         :type configuration: ConfigParser, file, or dict
-        :raises MultipleInvalid: If the config does not validate against the defined schema
+        :raises InvalidConfig: If the config does not validate against the defined schema
+
+        .. note::
+        Setting configuratoin to None create the StinyConfiguration object in bootstrap mode. In this mode, you may
+        set any values that you like and it will defer validation until write.
         """
         try:
+            self._bootstrap = False
             if isinstance(configuration, ConfigParser):
                 self._configuration = StinyConfiguration._CONFIG_SCHEMA(self._configparser_to_dict(configuration))
             elif isinstance(configuration, file):
@@ -84,8 +77,11 @@ class StinyConfiguration(object):
                 self._configuration = StinyConfiguration._CONFIG_SCHEMA(self._configparser_to_dict(p))
             elif isinstance(configuration, dict):
                 self._configuration = StinyConfiguration._CONFIG_SCHEMA(_deepcopy(configuration))
+            elif configuration is None:
+                self._configuration = dict()
+                self._bootstrap = True
         except MultipleInvalid as e:
-            raise InvalidConfig(e.msg)
+            raise InvalidConfig(repr(e))
 
     @staticmethod
     def _configparser_to_dict(config_parser):
@@ -147,6 +143,20 @@ class StinyConfiguration(object):
         except KeyError:
             raise UnknownConfigError("{}/{} cannot be found in config".format(section, option))
 
+    def has(self, section, option):
+        """
+        Check if the option is in the config
+
+        :param section: The section the config option is in, e.g. "main" or "s3"
+        :param option: The name of the option
+        :returns: boolean for presence
+        """
+        try:
+            self.get(section, option)
+            return True
+        except UnknownConfigError:
+            return False
+
     def set(self, section, option, value=None):
         """
         Sets the option value in the provided section
@@ -160,6 +170,14 @@ class StinyConfiguration(object):
         """
         _ALLOWED_SCHEMA_OPTIONS = {section.schema: [option.schema for option in self._CONFIG_SCHEMA.schema[section]]
                                    for section in self._CONFIG_SCHEMA.schema}
+
+        # If in bootstrap mode, create the options in advance of the check to see if they're in the schema. This will
+        # allow us to set invalid options, but they won't validate on write.
+        if self._bootstrap and section not in self._configuration:
+            self._configuration[section] = dict()
+        if self._bootstrap and option not in self._configuration[section]:
+            self._configuration[section][option] = None
+
         allowed_option = section in _ALLOWED_SCHEMA_OPTIONS and option in _ALLOWED_SCHEMA_OPTIONS[section]
 
         if allowed_option:
@@ -170,14 +188,18 @@ class StinyConfiguration(object):
 
             self._configuration[section][option] = _copy(value)
         else:
-            raise MultipleInvalid("Section:{} and Option:{} not valid on Config Schema".format(section, option))
+            raise InvalidConfig("Section:{} and Option:{} not valid on Config Schema".format(section, option))
 
     def sections(self):
         """
         Returns a list of sections from the config
         :return: list(str)
         """
-        return _deepcopy(self._configuration.keys())
+
+        if self._bootstrap:
+            return [section.schema for section in self._CONFIG_SCHEMA.schema.keys()]
+        else:
+            return _deepcopy(self._configuration.keys())
 
     def options(self, section):
         """
@@ -186,7 +208,12 @@ class StinyConfiguration(object):
         :type section: str
         :return: list(str)
         """
-        return _deepcopy(self._configuration[section].keys())
+        if self._bootstrap:
+            SCHEMA_OPTIONS = {section.schema: [option.schema for option in self._CONFIG_SCHEMA.schema[section]]
+                              for section in self._CONFIG_SCHEMA.schema}
+            return SCHEMA_OPTIONS[section]
+        else:
+            return _deepcopy(self._configuration[section].keys())
 
     def write(self, fp):
         """
@@ -195,16 +222,19 @@ class StinyConfiguration(object):
         :type fp: file
         :raises MultipleInvalid: If the stored configuration is not valid in the embedded schema
         """
-        self._CONFIG_SCHEMA(self._configuration)
+        try:
+            self._CONFIG_SCHEMA(self._configuration)
+        except MultipleInvalid as e:
+            raise InvalidConfig(repr(e))
         config_parser = self._dict_to_configparser(self._configuration)
         config_parser.write(fp)
 
-    @property
-    def config_schema(self):
+    @classmethod
+    def config_schema(cls):
         """
         Provides a one way accessor for the CONFIG_SCHEMA using a deepcopy so it is not mutable
         :returns dict: The Voluptuous Schema
         """
-        return _deepcopy(self._CONFIG_SCHEMA)
+        return _deepcopy(cls._CONFIG_SCHEMA)
 
 

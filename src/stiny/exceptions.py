@@ -80,3 +80,10 @@ class UnsupportedStorageTypeException(Exception):
     Raised if the storage type configured is not supported
     """
     pass
+
+
+class ConfigNotFoundError(Exception):
+    """
+    Raised by the Stiny binary if the config file provided is not found
+    """
+    pass

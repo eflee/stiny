@@ -39,6 +39,7 @@ class URL(object):
         self._tiny_text = None
         self.tiny_text = tiny_text
         self.tiny_text_provided = tiny_text is not None
+        self.last_modified = None
 
     @property
     def url(self):

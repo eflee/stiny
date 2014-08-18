@@ -9,7 +9,7 @@ setup(
 
     # Project uses reStructuredText, so ensure that the docutils get
     # installed or upgraded on the target machine
-    install_requires=['docutils>=0.3', 'boto>=2.32', 'docopt>=0.6', 'jinja2>=2.7', 'voluptuous>=0.8.5'],
+    install_requires=['docutils>=0.3', 'boto>=2.32', 'docopt>=0.6', 'jinja2>=2.7', 'voluptuous>=0.8.5', 'pyrax>=1.9.1'],
 
     package_data={
         # If any package contains *.txt or *.rst files, include them:

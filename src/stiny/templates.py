@@ -67,7 +67,7 @@ META_REDIRECT_GOOGLE_ANALYTICS = \
           })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
 
           ga('create', '{{ analytics.id }}', 'auto');
-          ga('send', 'pageview');
+          ga('send', 'pageview', { 'title': 'target:{{ url.url }}'});
         </script>
     </head>
     </html>

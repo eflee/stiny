@@ -55,7 +55,7 @@ class CloudFilesController(Controller):
         try:
             object_ = pyrax.cloudfiles.get_object(self._container, tiny_uri)
             url = object_.get_metadata()["tiny_url"]
-            last_modified = datetime.strptime(object_.last_modified, "%a, %d %b %Y %H:%M:%S %Z")
+            last_modified = datetime.strptime(object_.last_modified, "%Y-%m-%dT%H:%M:%S.%f")
             surl = URL(url=url, tiny_text=tiny_uri, prefix_separator=self.prefix_separator, last_modified=last_modified)
             return surl
         except (KeyError, NoSuchObject):
@@ -86,7 +86,7 @@ class CloudFilesController(Controller):
             object_metadata = {'tiny_url': url.url}
 
             sio = self._get_contents_fp(url)
-            pyrax.cloudfiles.create_object(self, self._container, file_or_path=sio, obj_name=object_name,
+            pyrax.cloudfiles.create_object(self._container, file_or_path=sio, obj_name=object_name,
                                            content_type=object_content_type, content_encoding=object_content_encoding,
                                            metadata=object_metadata)
             sio.close()
@@ -123,7 +123,7 @@ class CloudFilesController(Controller):
             url = url.get_tiny_uri()
 
         if self.exists(url):
-            pyrax.cloudfiles.delete_object(self._container, 'url')
+            pyrax.cloudfiles.delete_object(self._container, url)
         else:
             raise TinyUrlDoesNotExistException("{} does not exist".format(url))
 
@@ -136,7 +136,7 @@ class CloudFilesController(Controller):
         for object_ in pyrax.cloudfiles.list_container_objects(self._container):
             try:
                 url = object_.get_metadata()["tiny_url"]
-                last_modified = datetime.strptime(object_.last_modified, "%a, %d %b %Y %H:%M:%S %Z")
+                last_modified = datetime.strptime(object_.last_modified, "%Y-%m-%dT%H:%M:%S.%f")
                 surl = URL(url=url, tiny_text=object_.name, prefix_separator=self.prefix_separator,
                            last_modified=last_modified)
                 yield surl

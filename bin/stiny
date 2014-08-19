@@ -191,19 +191,21 @@ def configure(config_path):
     print("Configuring Stiny...")
 
     for section in new_config.sections():
-        print("\t{} Section:".format(section))
-        for option in new_config.options(section):
-            default = config.get(section, option) if config and config.has(section, option) else None
-            input_ = raw_input("\t\t{} [{}]: ".format(option, default))
-            if input_ == "":
-                new_config.set(section, option, default)
-            else:
-                new_config.set(section, option, input_)
+        if section == 'main' or user_confirm("Configure Section {section}?".format(section=section)):
+            print("\tSection {}:".format(section))
+            for option in new_config.options(section):
+                default = config.get(section, option) if config and config.has(section, option) else None
+                input_ = raw_input("\t\t{} [{}]: ".format(option, default))
+                if input_ == "":
+                    new_config.set(section, option, default)
+                else:
+                    new_config.set(section, option, input_)
 
     print("\n\nConfiguration:")
     print_config(new_config)
-    with open(config_path, 'w') as f:
-        new_config.write(f)
+    if user_confirm("Write Configuration?"):
+        with open(config_path, 'w') as f:
+            new_config.write(f)
 
 
 def print_config(config):
@@ -215,6 +217,13 @@ def print_config(config):
         print(section)
         for option in config.options(section):
             print("\t{option} : {value}".format(option=option, value=config.get(section, option)))
+
+
+def user_confirm(prompt):
+    answer = ''
+    while answer.upper() not in ['Y', 'N']:
+        answer = raw_input(prompt + " (Y/N):").upper()
+    return answer == 'Y'
 
 
 if __name__ == '__main__':

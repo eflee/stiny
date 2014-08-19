@@ -54,13 +54,6 @@ class TemplateNotFoundException(Exception):
     pass
 
 
-class InvalidConfig(Exception):
-    """
-    Raised if the config provided is not valid
-    """
-    pass
-
-
 class UnknownConfigError(Exception):
     """
     Raise if the requsted configuration values are not set

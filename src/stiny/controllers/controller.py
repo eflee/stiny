@@ -137,6 +137,21 @@ class Controller(object):
         pass
 
     @abstractmethod
+    def get(self, tiny_uri):
+        """
+        Get the tiny url from storage.
+
+        If the tiny_text is provided in the url, it will be used (and overwritten is specified)
+        Otherwise, it will attempt to generate non-conflicting tiny text up to max_retries times.
+        Often, with large number of tiny_urls we see failure counts increase, in which case the initial_tiny_length
+        should be increased to increase the namespace
+
+        :param tiny_uri: the name of the tiny url
+        :raises: TinyURLDoesNotExistsException - if the provided tiny exists and we're not overwriting
+        """
+        pass
+
+    @abstractmethod
     def delete(self, url):
         """
         Delete the tiny url from storage.

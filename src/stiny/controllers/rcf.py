@@ -3,8 +3,11 @@ from StringIO import StringIO
 from datetime import datetime
 
 import pyrax
+from pyrax.exceptions import NoSuchObject
 
 from controller import Controller
+from ..url import URL
+from ..exceptions import TinyUrlDoesNotExistException, TinyURLExistsException
 
 
 class CloudFilesController(Controller):
@@ -37,6 +40,27 @@ class CloudFilesController(Controller):
         self._container = pyrax.cloudfiles.get_container(container_name)
         self._compression = compress
 
+    def get(self, tiny_uri):
+        """
+        Get the tiny url from storage.
+
+        If the tiny_text is provided in the url, it will be used (and overwritten is specified)
+        Otherwise, it will attempt to generate non-conflicting tiny text up to max_retries times.
+        Often, with large number of tiny_urls we see failure counts increase, in which case the initial_tiny_length
+        should be increased to increase the namespace
+
+        :param tiny_uri: the name of the tiny url
+        :raises: TinyURLDoesNotExistsException - if the provided tiny exists and we're not overwriting
+        """
+        try:
+            object_ = pyrax.cloudfiles.get_object(self._container, tiny_uri)
+            url = object_.get_metadata()["tiny_url"]
+            last_modified = datetime.strptime(object_.last_modified, "%a, %d %b %Y %H:%M:%S %Z")
+            surl = URL(url=url, tiny_text=tiny_uri, prefix_separator=self.prefix_separator, last_modified=last_modified)
+            return surl
+        except (KeyError, NoSuchObject):
+            return TinyUrlDoesNotExistException("tiny url '{}' does not exist.".format(tiny_uri))
+
     def put(self, url):
         """
         Put the tiny url to storage.
@@ -55,17 +79,20 @@ class CloudFilesController(Controller):
         if url.tiny_text is None:
             self._select_tiny_text(url)
 
-        object_name = url.get_tiny_uri()
-        object_content_type = "text/html"
-        object_content_encoding = 'gzip' if self._compression else None
-        object_metadata = {'tiny_url': url.url}
+        if not self.exists(url):
+            object_name = url.get_tiny_uri()
+            object_content_type = "text/html"
+            object_content_encoding = 'gzip' if self._compression else None
+            object_metadata = {'tiny_url': url.url}
 
-        sio = self._get_contents_fp(url)
-        pyrax.cloudfiles.create_object(self, self._container, file_or_path=sio, obj_name=object_name,
-                                       content_type=object_content_type, content_encoding=object_content_encoding,
-                                       metadata=object_metadata)
-        sio.close()
-        url.last_modified = datetime.now()
+            sio = self._get_contents_fp(url)
+            pyrax.cloudfiles.create_object(self, self._container, file_or_path=sio, obj_name=object_name,
+                                           content_type=object_content_type, content_encoding=object_content_encoding,
+                                           metadata=object_metadata)
+            sio.close()
+            url.last_modified = datetime.now()
+        else:
+            raise TinyURLExistsException("{} already exists".format(url.tiny_text))
 
     def _get_contents_fp(self, url):
         """
@@ -92,30 +119,29 @@ class CloudFilesController(Controller):
         :param url: the stiny.utl.StaticURL to be deleted (tiny_text must be provided) or str of tiny_text
         :raises: TinyURLDoesNotExistsException - if the provided tiny does not exist
         """
-        # if isinstance(url, URL):
-        # url = url.get_tiny_uri()
-        #
-        # if self.exists(url):
-        #     self._container.delete_key(url)
-        # else:
-        #     raise TinyUrlDoesNotExistException("{} does not exist".format(url))
-        pass
+        if isinstance(url, URL):
+            url = url.get_tiny_uri()
+
+        if self.exists(url):
+            pyrax.cloudfiles.delete_object(self._container, 'url')
+        else:
+            raise TinyUrlDoesNotExistException("{} does not exist".format(url))
 
     def list(self):
         """
         List the tiny urls in storage (should not list non-tinys)
         :return: Generate of (tiny_text, destination_url)
         """
-        # for key in self._container:
-        # try:
-        #         akey = self._container.get_key(key.key)
-        #         url = akey.metadata["tiny_url"]
-        #         surl = URL(url=url, tiny_text=key.key, prefix_separator=self.prefix_separator)
-        #         surl.last_modified = datetime.strptime(akey.last_modified, "%a, %d %b %Y %H:%M:%S %Z")
-        #         yield surl
-        #     except KeyError:
-        #         continue
-        pass
+
+        for object_ in pyrax.cloudfiles.list_container_objects(self._container):
+            try:
+                url = object_.get_metadata()["tiny_url"]
+                last_modified = datetime.strptime(object_.last_modified, "%a, %d %b %Y %H:%M:%S %Z")
+                surl = URL(url=url, tiny_text=object_.name, prefix_separator=self.prefix_separator,
+                           last_modified=last_modified)
+                yield surl
+            except KeyError:
+                continue
 
     def exists(self, url):
         """
@@ -124,18 +150,17 @@ class CloudFilesController(Controller):
         :return: Boolean of existence
         """
 
+        if isinstance(url, URL):
+            url = url.get_tiny_uri()
 
-        # assert isinstance(self._container, pyrax.object_storage.StorageClient)  #TODO Remove
-        #
-        # self._container
-        # if isinstance(url, URL):
-        # url = url.get_tiny_uri()
-        #
-        # if url is None:
-        #     return False
-        # else:
-        #     return self._container.get_key(url) is not None
-        pass
+        if url is None:
+            return False
+        else:
+            try:
+                pyrax.cloudfiles.get_object(self._container, url)
+                return True
+            except NoSuchObject:
+                return False
 
     def validate(self, url):
         """
@@ -143,5 +168,11 @@ class CloudFilesController(Controller):
         :param url: the stiny.utl.StaticURL to validate
         :return: Boolean of validity
         """
-        # return self.exists(url) and self._container.get_key(url.get_tiny_uri()).get_metadata("tiny_url") == url.url
-        pass
+
+        # reimplementing exists functionality to save on head call
+        try:
+            object_ = pyrax.cloudfiles.get_object(self._container, url.get_tiny_uri())
+            return object_.get_metadata()['tiny_url'] == url.url
+        except (NoSuchObject, KeyError):
+            return False
+

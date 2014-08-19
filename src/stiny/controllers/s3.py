@@ -39,6 +39,27 @@ class S3Controller(Controller):
         self._bucket = _conn.get_bucket(bucket_name, validate=False)
         self._compression = compress
 
+    def get(self, tiny_uri):
+        """
+        Get the tiny url from storage.
+
+        If the tiny_text is provided in the url, it will be used (and overwritten is specified)
+        Otherwise, it will attempt to generate non-conflicting tiny text up to max_retries times.
+        Often, with large number of tiny_urls we see failure counts increase, in which case the initial_tiny_length
+        should be increased to increase the namespace
+
+        :param tiny_uri: the name of the tiny url
+        :raises: TinyURLDoesNotExistsException - if the provided tiny exists and we're not overwriting
+        """
+        try:
+            akey = self._bucket.get_key(tiny_uri)
+            url = akey.metadata["tiny_url"]
+            last_modified = datetime.strptime(akey.last_modified, "%a, %d %b %Y %H:%M:%S %Z")
+            surl = URL(url=url, tiny_text=akey.key, prefix_separator=self.prefix_separator, last_modified=last_modified)
+            return surl
+        except (KeyError, AttributeError):
+            return TinyUrlDoesNotExistException("tiny url '{}' does not exist.".format(tiny_uri))
+
     def put(self, url):
         """
         Put the tiny url to storage.

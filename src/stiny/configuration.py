@@ -36,8 +36,9 @@ class StinyConfiguration(object):
     This object support and validates the configutation file Schema. It behaves mostly like a ConfigParser object, but \
     uses voluptuous to create a schema and validates against the schema on set and write.
     """
-    SUPPORTED_STORAGE = ['s3']
+    SUPPORTED_STORAGE = ['s3', 'rcf']
     S3_REGIONS = [region.name for region in _s3_regions()]
+    RCF_REGIONS = ['IAD', 'DFW', 'HKG', 'SYD']  # Pyrax requires authorization to populate regions, for not hard coding.
 
     _CONFIG_SCHEMA = Schema(
         {Required("main"): {
@@ -52,7 +53,13 @@ class StinyConfiguration(object):
              Required("bucket_name"): Coerce(str),
              Required("aws_access_key_id"): Coerce(str),
              Required("aws_secret_access_key"): Coerce(str),
-             Optional("compress"): Coerce(int)}
+             Optional("compress"): Coerce(int)},
+         Optional("rcf"): {
+             Required("region"): All(Coerce(str), In(S3_REGIONS)),
+             Required("container_name"): Coerce(str),
+             Required("username"): Coerce(str),
+             Required("api_key"): Coerce(str),
+             Optional("compress"): Coerce(int)},
          })
 
     def __init__(self, configuration=None):
@@ -67,21 +74,33 @@ class StinyConfiguration(object):
         Setting configuratoin to None create the StinyConfiguration object in bootstrap mode. In this mode, you may
         set any values that you like and it will defer validation until write.
         """
+        self._bootstrap = False
+        if isinstance(configuration, ConfigParser):
+            self._configuration = self._get_valid(self._configparser_to_dict(configuration))
+        elif isinstance(configuration, file):
+            p = SafeConfigParser()
+            p.readfp(configuration)
+            self._configuration = self._get_valid(self._configparser_to_dict(p))
+        elif isinstance(configuration, dict):
+            self._configuration = self._get_valid(_deepcopy(configuration))
+        elif configuration is None:
+            self._configuration = dict()
+            self._bootstrap = True
+
+    def _get_valid(self, configuration):
+        """
+        Check if configuration is valid and return it
+        :param configuration: The dict to check
+        :return: Validated configuration
+        """
         try:
-            self._bootstrap = False
-            if isinstance(configuration, ConfigParser):
-                self._configuration = StinyConfiguration._CONFIG_SCHEMA(self._configparser_to_dict(configuration))
-            elif isinstance(configuration, file):
-                p = SafeConfigParser()
-                p.readfp(configuration)
-                self._configuration = StinyConfiguration._CONFIG_SCHEMA(self._configparser_to_dict(p))
-            elif isinstance(configuration, dict):
-                self._configuration = StinyConfiguration._CONFIG_SCHEMA(_deepcopy(configuration))
-            elif configuration is None:
-                self._configuration = dict()
-                self._bootstrap = True
+            config = self._CONFIG_SCHEMA(configuration)
+            if sum([storage in self._configuration for storage in self.SUPPORTED_STORAGE]) > 1:
+                raise InvalidConfig("Only one storage type may be configured at a time")
+            return config
         except MultipleInvalid as e:
             raise InvalidConfig(repr(e))
+
 
     @staticmethod
     def _configparser_to_dict(config_parser):
@@ -222,10 +241,7 @@ class StinyConfiguration(object):
         :type fp: file
         :raises MultipleInvalid: If the stored configuration is not valid in the embedded schema
         """
-        try:
-            self._CONFIG_SCHEMA(self._configuration)
-        except MultipleInvalid as e:
-            raise InvalidConfig(repr(e))
+        self._get_valid(self._configuration)
         config_parser = self._dict_to_configparser(self._configuration)
         config_parser.write(fp)
 

@@ -4,7 +4,7 @@ from datetime import datetime
 
 import boto.s3
 
-from ..exceptions import TinyUrlDoesNotExistException
+from ..exceptions import TinyUrlDoesNotExistException, TinyURLExistsException
 from controller import Controller
 from ..url import URL
 
@@ -57,18 +57,21 @@ class S3Controller(Controller):
         if url.tiny_text is None:
             self._select_tiny_text(url)
 
-        tiny_key = self._bucket.new_key(key_name=url.get_tiny_uri())
+        if not self.exists(url) or self.overwrite:
+            tiny_key = self._bucket.new_key(key_name=url.get_tiny_uri())
 
-        tiny_key.set_metadata("tiny_url", url.url)
-        tiny_key.set_metadata("Content-Type", "text/html")
-        if self._compression:
-            tiny_key.set_metadata("Content-Encoding", "gzip")
+            tiny_key.set_metadata("tiny_url", url.url)
+            tiny_key.set_metadata("Content-Type", "text/html")
+            if self._compression:
+                tiny_key.set_metadata("Content-Encoding", "gzip")
 
-        sio = self._get_contents_fp(url)
-        tiny_key.set_contents_from_file(fp=sio, policy="public-read")
-        sio.close()
+            sio = self._get_contents_fp(url)
+            tiny_key.set_contents_from_file(fp=sio, policy="public-read")
+            sio.close()
 
-        url.last_modified = datetime.now()
+            url.last_modified = datetime.now()
+        else:
+            raise TinyURLExistsException("{} already exists".format(url.tiny_text))
 
     def _get_contents_fp(self, url):
         """

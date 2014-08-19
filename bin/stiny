@@ -29,7 +29,7 @@ import docopt
 
 from stiny.controllers import get_controller
 from stiny.url import URL
-from stiny.exceptions import FailedTinyActionError, InvalidTinyTextException, InvalidURLException, \
+from stiny.exceptions import InvalidTinyTextException, InvalidURLException, \
     MalformedTemplateConfig, TemplateNotFoundException, UnsupportedStorageTypeException, UnknownConfigError, \
     ConfigNotFoundError, InvalidConfig, UnableToAutogenerateTinyText, TinyURLExistsException, \
     TinyUrlDoesNotExistException
@@ -85,8 +85,7 @@ def main():
         print(e.message)
         exit(1)
 
-    except (FailedTinyActionError,
-            InvalidTinyTextException,  # If the tiny text provided is not valid
+    except (InvalidTinyTextException,  # If the tiny text provided is not valid
             InvalidURLException,  # If the url provided is not valid
             MalformedTemplateConfig,  #If the template config value does not begin with CANNED: or FILE:
             TemplateNotFoundException,  #If the provided template config cannot be found

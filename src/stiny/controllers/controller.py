@@ -43,8 +43,7 @@ Here is a code example if using a controller (in this case an S3Controller)::
             InvalidURLException,
             TooManyNameCollisions,
             TinyURLExistsException,
-            TinyUrlDoesNotExistException,
-            FailedTinyActionError) as e:
+            TinyUrlDoesNotExistException) as e:
         print e.message
 
 All controllers support these basic methods, with additional methods documented in the section for the specific
@@ -134,7 +133,6 @@ class Controller(object):
         :param url: the stiny.utl.StaticURL to be generated
         :raises: TooManyNameCollisions - if we're unable to autogenerate a tiny_text name
         :raises: TinyURLExistsException - if the provided tiny exists and we're not overwriting
-        :raises: FailedTinyActionError - if storage fails to complete the put
         """
         pass
 
@@ -145,7 +143,6 @@ class Controller(object):
 
         :param url: the stiny.utl.StaticURL to be deleted (tiny_text must be provided) or str of tiny_text
         :raises: TinyURLDoesNotExistsException - if the provided tiny does not exist
-        :raises: FailedTinyActionError - if storage fails to delete
         """
         pass
 
@@ -155,7 +152,6 @@ class Controller(object):
         List the tiny urls in storage (should not list non-tinys) in the object store
 
         :return: Generator of stiny.url.URLs
-        :raises: FailedTinyActionError - if storage fails to list
         """
         for x in xrange(10):
             yield (x, x)
@@ -167,7 +163,6 @@ class Controller(object):
 
         :param url: the stiny.utl.StaticURL to be checked (tiny_text must be provided) or str of tiny_text
         :return: Boolean of existence
-        :raises: FailedTinyActionError - if storage fails the query
         """
         pass
 
@@ -178,7 +173,6 @@ class Controller(object):
 
         :param url: the stiny.utl.StaticURL to validate
         :return: Boolean of validity, nonexistance is considered nonvalid.
-        :raises: FailedTinyActionError - if storage fails the query
         """
         pass
 

@@ -5,13 +5,6 @@ Defines the exception classes used throughut the stiny code for convenient refer
 __author__ = 'eflee'
 
 
-class FailedTinyActionError(Exception):
-    """
-    Generic exception used to encapsulate the errors from the storage client
-    """
-    pass
-
-
 class InvalidTinyTextException(Exception):
     """
     Raised when the tiny text targeted is not lowercase letters

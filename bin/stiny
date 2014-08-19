@@ -160,9 +160,9 @@ def list_(controller, domain):
     :param controller: The controller object for the configured storage
     :param domain: The root domain
     """
-    format_line = "{:<28}{:<22}{:<172}"
+    format_line = "{:<28}{:<27}{:<167}"
     print(format_line.format("Create Date", "Tiny URL", "Long URL"))
-    print(format_line.format("-" * 26, "-" * 20, "-" * 170))
+    print(format_line.format("-" * 26, "-" * 25, "-" * 165))
 
     for surl in sorted(controller.list(), key=lambda x: x.last_modified):
         print(format_line.format(surl.last_modified.strftime("%a, %d %b %Y %H:%M:%S %Z"),

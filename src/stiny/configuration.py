@@ -38,7 +38,8 @@ class StinyConfiguration(object):
     """
     SUPPORTED_STORAGE = ['s3', 'rcf']
     S3_REGIONS = [region.name for region in _s3_regions()]
-    RCF_REGIONS = ['IAD', 'DFW', 'HKG', 'SYD']  # Pyrax requires authorization to populate regions, for not hard coding.
+    RCF_REGIONS = ['SYD', 'IAD', 'DFW', 'ORD',
+                   'HKG']  # Pyrax requires authorization to populate regions, for not hard coding.
 
     _CONFIG_SCHEMA = Schema(
         {Required("main"): {

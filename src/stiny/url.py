@@ -30,7 +30,7 @@ class URL(object):
     :ivar bool tiny_text_provided: Whether the tiny_text was provided on instantiation or has been set at a later time
     """
 
-    def __init__(self, url, tiny_text=None, prefix=None, prefix_separator=""):
+    def __init__(self, url, tiny_text=None, prefix=None, prefix_separator="", last_modified=None):
         self._url = None
         self.url = url
         self._prefix = None
@@ -39,7 +39,7 @@ class URL(object):
         self._tiny_text = None
         self.tiny_text = tiny_text
         self.tiny_text_provided = tiny_text is not None
-        self.last_modified = None
+        self.last_modified = last_modified
 
     @property
     def url(self):

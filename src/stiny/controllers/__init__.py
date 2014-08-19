@@ -18,7 +18,6 @@ def get_controller(config):
 
     storage = config.get('main', 'storage')
     if storage == 's3':
-        compress = config.get('s3', 'compress') == 1 if config.has('s3', 'compress') else False
         controller = S3Controller(template=template,
                                   tiny_length=config.get('main', 'min_length'),
                                   max_retries=config.get('main', 'max_retries'),
@@ -27,9 +26,9 @@ def get_controller(config):
                                   region=config.get('s3', 'region'),
                                   aws_access_key_id=config.get('s3', 'aws_access_key_id'),
                                   aws_secret_access_key=config.get('s3', 'aws_secret_access_key'),
-                                  compress=compress)
+                                  compress=config.get('s3', 'compress', raise_on_absent=False),
+                                  http_redirect=config.get('s3', 'http_redirect', raise_on_absent=False))
     elif storage == 'rcf':
-        compress = config.get('rcf', 'compress') == 1 if config.has('rcf', 'compress') else False
         controller = CloudFilesController(template=template,
                                           tiny_length=config.get('main', 'min_length'),
                                           max_retries=config.get('main', 'max_retries'),
@@ -38,7 +37,7 @@ def get_controller(config):
                                           region=config.get('rcf', 'region'),
                                           rs_username=config.get('rcf', 'username'),
                                           rs_api_key=config.get('rcf', 'api_key'),
-                                          compress=compress)
+                                          compress=config.get('rcf', 'compress', raise_on_absent=False))
     else:
         raise UnsupportedStorageTypeException("{store} is an unknown storage type".format(store=storage))
     return controller

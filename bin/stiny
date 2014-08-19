@@ -31,9 +31,8 @@ from stiny.controllers import get_controller
 from stiny.url import URL
 from stiny.exceptions import InvalidTinyTextException, InvalidURLException, \
     MalformedTemplateConfig, TemplateNotFoundException, UnsupportedStorageTypeException, UnknownConfigError, \
-    ConfigNotFoundError, InvalidConfig, UnableToAutogenerateTinyText, TinyURLExistsException, \
-    TinyUrlDoesNotExistException
-from stiny.configuration import StinyConfiguration
+    ConfigNotFoundError, UnableToAutogenerateTinyText, TinyURLExistsException, TinyUrlDoesNotExistException
+from stiny.configuration import StinyConfiguration, MultipleInvalid
 
 
 TINY_FORMAT = "http://{domain}/{tiny}"
@@ -97,7 +96,7 @@ def main():
         exit(2)
 
     # These crop up in the event of issues in the config file
-    except (InvalidConfig,  # Config schema failed to validate
+    except (MultipleInvalid,  # Config schema failed to validate
             UnknownConfigError,  #There are missing config values that are not required in the schema
             UnsupportedStorageTypeException,  #The storage type set is not implemented
             ConfigNotFoundError  # The config file cannot be found
@@ -105,10 +104,10 @@ def main():
         print("CONFIG ERROR: {}".format(e.message))
         exit(3)
 
-    # Unhandled exception
+    # # Unhandled exception
     except Exception as e:
         print("CRITICAL ERROR - UNHANDLED TERMINATION")
-        print(e.message)
+        print(repr(e))
         exit(99)
 
 
@@ -201,8 +200,6 @@ def configure(config_path):
                 else:
                     new_config.set(section, option, input_)
 
-    print("\n\nConfiguration:")
-    print_config(new_config)
     if user_confirm("Write Configuration?"):
         with open(config_path, 'w') as f:
             new_config.write(f)

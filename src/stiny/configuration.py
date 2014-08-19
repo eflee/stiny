@@ -11,7 +11,7 @@ from ConfigParser import ConfigParser, SafeConfigParser
 from voluptuous import Schema, Required, Optional, All, In, Invalid, Coerce, MultipleInvalid
 from boto.s3 import regions as _s3_regions
 
-from exceptions import InvalidConfig, UnknownConfigError
+from exceptions import UnknownConfigError
 
 
 def valid_template_value(value):
@@ -56,7 +56,7 @@ class StinyConfiguration(object):
              Required("aws_secret_access_key"): Coerce(str),
              Optional("compress"): Coerce(int)},
          Optional("rcf"): {
-             Required("region"): All(Coerce(str), In(S3_REGIONS)),
+             Required("region"): All(Coerce(str), In(RCF_REGIONS)),
              Required("container_name"): Coerce(str),
              Required("username"): Coerce(str),
              Required("api_key"): Coerce(str),
@@ -94,13 +94,10 @@ class StinyConfiguration(object):
         :param configuration: The dict to check
         :return: Validated configuration
         """
-        try:
-            config = self._CONFIG_SCHEMA(configuration)
-            if sum([storage in self._configuration for storage in self.SUPPORTED_STORAGE]) > 1:
-                raise InvalidConfig("Only one storage type may be configured at a time")
-            return config
-        except MultipleInvalid as e:
-            raise InvalidConfig(repr(e))
+        config = self._CONFIG_SCHEMA(configuration)
+        if sum([storage in configuration for storage in self.SUPPORTED_STORAGE]) > 1:
+            raise MultipleInvalid("Only one storage type may be configured at a time")
+        return config
 
 
     @staticmethod
@@ -208,7 +205,7 @@ class StinyConfiguration(object):
 
             self._configuration[section][option] = _copy(value)
         else:
-            raise InvalidConfig("Section:{} and Option:{} not valid on Config Schema".format(section, option))
+            raise MultipleInvalid("Section:{} and Option:{} not valid on Config Schema".format(section, option))
 
     def sections(self):
         """

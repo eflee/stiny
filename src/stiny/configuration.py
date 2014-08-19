@@ -99,7 +99,6 @@ class StinyConfiguration(object):
             raise MultipleInvalid("Only one storage type may be configured at a time")
         return config
 
-
     @staticmethod
     def _configparser_to_dict(config_parser):
         """
@@ -226,9 +225,9 @@ class StinyConfiguration(object):
         :return: list(str)
         """
         if self._bootstrap:
-            SCHEMA_OPTIONS = {section.schema: [option.schema for option in self._CONFIG_SCHEMA.schema[section]]
+            schema_options = {section.schema: [option.schema for option in self._CONFIG_SCHEMA.schema[section]]
                               for section in self._CONFIG_SCHEMA.schema}
-            return SCHEMA_OPTIONS[section]
+            return schema_options[section]
         else:
             return _deepcopy(self._configuration[section].keys())
 

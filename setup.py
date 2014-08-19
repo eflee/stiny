@@ -19,7 +19,7 @@ setup(
     # metadata for upload to PyPI
     author="Eli Flesher",
     author_email="eli@eflee.us",
-    description="A Command-line Tiny Link solution for static backing stores",
+    description="A Command-line Tiny Link solution for static storage",
     license="Apache",
     keywords="s3 gcs tinyurl static",
     url="http://elif.us/stiny",  # project home page, if any

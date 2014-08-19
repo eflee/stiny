@@ -5,7 +5,7 @@ provides configuration and bootstrapping.
 """
 
 __doc__ = """
-Stiny - TinyURLs for Static Backing Stores
+Stiny - TinyURLs for Static Storage
 
 Usage:
   stiny new (<url>) [<name>] [--config=<config>]

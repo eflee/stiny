@@ -1,4 +1,4 @@
-"""Controllers are the heavy-lifing mechanisms of Stiny. They manipuldate the backing stores and create a standard
+"""Controllers are the heavy-lifing mechanisms of Stiny. They manipuldate storage and create a standard
 interface for the Stiny cli and applications leveraging the Stiny library. Typically controllers are instantiated with
 the template for the TinyURL HTML files (if necessary) and provide standard put, delete, list, validate and exists
 methods.
@@ -20,7 +20,7 @@ Here is a code example if using a controller (in this case an S3Controller)::
     url = URL(url="http://www.google.com/")
 
     try:
-        # Put the tinyURL to the backing store
+        # Put the tinyURL to storage
         controller.put(url)
 
         # Assert that it exists using the object
@@ -65,7 +65,7 @@ __author__ = 'eflee'
 
 class Controller(object):
     """
-    The abstract base class for the controller of a backing store. This class does not actually impliment any
+    The abstract base class for the controller of storage. This class does not actually impliment any
     functionality (other than the constructor) but rather sets the method contracts for the methods supported by all
     controllers.
 
@@ -124,7 +124,7 @@ class Controller(object):
     @abstractmethod
     def put(self, url):
         """
-        Put the tiny url to the backing store.
+        Put the tiny url to storage.
 
         If the tiny_text is provided in the url, it will be used (and overwritten is specified)
         Otherwise, it will attempt to generate non-conflicting tiny text up to max_retries times.
@@ -134,28 +134,28 @@ class Controller(object):
         :param url: the stiny.utl.StaticURL to be generated
         :raises: TooManyNameCollisions - if we're unable to autogenerate a tiny_text name
         :raises: TinyURLExistsException - if the provided tiny exists and we're not overwriting
-        :raises: FailedTinyActionError - if the backing store fails to complete the put
+        :raises: FailedTinyActionError - if storage fails to complete the put
         """
         pass
 
     @abstractmethod
     def delete(self, url):
         """
-        Delete the tiny url from the backing store.
+        Delete the tiny url from storage.
 
         :param url: the stiny.utl.StaticURL to be deleted (tiny_text must be provided) or str of tiny_text
         :raises: TinyURLDoesNotExistsException - if the provided tiny does not exist
-        :raises: FailedTinyActionError - if the backing store fails to delete
+        :raises: FailedTinyActionError - if storage fails to delete
         """
         pass
 
     @abstractmethod
     def list(self):
         """
-        List the tiny urls in the backing store (should not list non-tinys) in the object store
+        List the tiny urls in storage (should not list non-tinys) in the object store
 
         :return: Generator of stiny.url.URLs
-        :raises: FailedTinyActionError - if the backing store fails to list
+        :raises: FailedTinyActionError - if storage fails to list
         """
         for x in xrange(10):
             yield (x, x)
@@ -167,7 +167,7 @@ class Controller(object):
 
         :param url: the stiny.utl.StaticURL to be checked (tiny_text must be provided) or str of tiny_text
         :return: Boolean of existence
-        :raises: FailedTinyActionError - if the backing store fails the query
+        :raises: FailedTinyActionError - if storage fails the query
         """
         pass
 
@@ -178,7 +178,7 @@ class Controller(object):
 
         :param url: the stiny.utl.StaticURL to validate
         :return: Boolean of validity, nonexistance is considered nonvalid.
-        :raises: FailedTinyActionError - if the backing store fails the query
+        :raises: FailedTinyActionError - if storage fails the query
         """
         pass
 

@@ -1,4 +1,4 @@
-"""Stiny module - tiny url generation using static backing stores and jinja templates
+"""Stiny module - tiny url generation using static storage and jinja templates
 
     The stiny module consists of the following submodules:
 

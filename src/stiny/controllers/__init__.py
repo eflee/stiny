@@ -29,5 +29,5 @@ def get_controller(config):
                                   compress=compress)
 
     else:
-        raise UnsupportedStorageTypeException("{store} is an unknown backing store type".format(store=storage))
+        raise UnsupportedStorageTypeException("{store} is an unknown storage type".format(store=storage))
     return controller

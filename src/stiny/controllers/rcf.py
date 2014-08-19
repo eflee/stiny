@@ -9,7 +9,7 @@ from controller import Controller
 
 class CloudFilesController(Controller):
     """
-    A controller for an backing store using an CloudFiles container website.
+    A controller for storage using an CloudFiles container website.
 
     Currently, the controller assumes the container exists, is configured as a website and has an expiration policy
     in place that supports the expiration rules of the StaticURLs
@@ -39,7 +39,7 @@ class CloudFilesController(Controller):
 
     def put(self, url):
         """
-        Put the tiny url to the backing store.
+        Put the tiny url to storage.
         If the tiny_text is provided in the url, it will be used (and overwritten as specified)
         Otherwise, it will attempt to generate non-conflicting tiny text
         :param url: the url to be generated
@@ -88,7 +88,7 @@ class CloudFilesController(Controller):
 
     def delete(self, url):
         """
-        Delete the tiny url from the backing store.
+        Delete the tiny url from storage.
         :param url: the stiny.utl.StaticURL to be deleted (tiny_text must be provided) or str of tiny_text
         :raises: TinyURLDoesNotExistsException - if the provided tiny does not exist
         """
@@ -103,7 +103,7 @@ class CloudFilesController(Controller):
 
     def list(self):
         """
-        List the tiny urls in the backing store (should not list non-tinys)
+        List the tiny urls in storage (should not list non-tinys)
         :return: Generate of (tiny_text, destination_url)
         """
         # for key in self._container:

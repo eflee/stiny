@@ -26,7 +26,7 @@ class URL(object):
     :ivar str prefix: The prefix to prepend to the tiny_text
     :ivar str prefix_separator: The separator used to separate the prefix from the tiny_text.
     :ivar str tiny_text: The tiny text used to create the tiny url without the prefix and separator and therefore not \
-    the name of the object in the backing store. (see: :func:`get_tiny_uri`)
+    the name of the object in storage. (see: :func:`get_tiny_uri`)
     :ivar bool tiny_text_provided: Whether the tiny_text was provided on instantiation or has been set at a later time
     """
 
@@ -125,7 +125,7 @@ class URL(object):
 
     def get_tiny_uri(self):
         """
-        Provides the full uri for the represented tinyurl. This is often the name of the object in the backing store.
+        Provides the full uri for the represented tinyurl. This is often the name of the object in storage.
 
         :return: prefix + prefix_separator + tiny_text
         :rtype: str

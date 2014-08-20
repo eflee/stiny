@@ -67,14 +67,14 @@ class StinyConfiguration(object):
              Required("bucket_name"): Coerce(str),
              Required("aws_access_key_id"): Coerce(str),
              Required("aws_secret_access_key"): Coerce(str),
-             Optional("compress", default="True"): bool_str,
-             Optional("http_redirect", default="False"): bool_str},
+             Optional("compress"): bool_str,
+             Optional("http_redirect"): bool_str},
          Optional("rcf"): {
              Required("region"): All(Coerce(str), In(RCF_REGIONS)),
              Required("container_name"): Coerce(str),
              Required("username"): Coerce(str),
              Required("api_key"): Coerce(str),
-             Optional("compress", default="True"): bool_str},
+             Optional("compress"): bool_str},
          })
 
     def __init__(self, configuration=None):

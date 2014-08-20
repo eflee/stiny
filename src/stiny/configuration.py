@@ -14,12 +14,25 @@ from boto.s3 import regions as _s3_regions
 from exceptions import UnknownConfigError
 
 
+def bool_str(value):
+    """
+    Validation function for bool-like int values
+    :param value: The configured template value
+    :return: True or False based on validity
+    :raises Invalid: if not valid
+    """
+    if not isinstance(value, (str, unicode)):
+        raise Invalid("'Value must be a string")
+    elif value.upper() not in ("TRUE", "FALSE"):
+        raise Invalid("Value must be True or False")
+    return value.upper() == "TRUE"
+
 def valid_template_value(value):
     """
     Validation function for template type in configuration schema
     :param value: The configured template value
-    :type value: str
-    :return: True or False based on validity
+    :return: value if valid
+    :raises Invalid: if not valid
     """
     if not isinstance(value, (str, unicode)):
         raise Invalid("Template values must be strings")
@@ -44,7 +57,7 @@ class StinyConfiguration(object):
     _CONFIG_SCHEMA = Schema(
         {Required("main"): {
             Required("root_domain_name"): Coerce(str),
-            Required("template"): All(Coerce(str), valid_template_value),
+            Required("template", default="CANNED:META_REDIRECT"): valid_template_value,
             Required("storage"): In(SUPPORTED_STORAGE),
             Required("min_length", default=3): Coerce(int),
             Required("max_retries", default=5): Coerce(int),
@@ -54,13 +67,14 @@ class StinyConfiguration(object):
              Required("bucket_name"): Coerce(str),
              Required("aws_access_key_id"): Coerce(str),
              Required("aws_secret_access_key"): Coerce(str),
-             Optional("compress"): Coerce(int)},
+             Optional("compress", default="True"): bool_str,
+             Optional("http_redirect", default="False"): bool_str},
          Optional("rcf"): {
              Required("region"): All(Coerce(str), In(RCF_REGIONS)),
              Required("container_name"): Coerce(str),
              Required("username"): Coerce(str),
              Required("api_key"): Coerce(str),
-             Optional("compress"): Coerce(int)},
+             Optional("compress", default="True"): bool_str},
          })
 
     def __init__(self, configuration=None):
@@ -145,7 +159,7 @@ class StinyConfiguration(object):
                 config_parser.set(section, option, value)
         return config_parser
 
-    def get(self, section, option):
+    def get(self, section, option, raise_on_absent=True):
         """
         Gets the option from the config
 
@@ -157,7 +171,10 @@ class StinyConfiguration(object):
         try:
             return _copy(self._configuration[section][option])
         except KeyError:
-            raise UnknownConfigError("{}/{} cannot be found in config".format(section, option))
+            if raise_on_absent:
+                raise UnknownConfigError("{}/{} cannot be found in config".format(section, option))
+            else:
+                return None
 
     def has(self, section, option):
         """

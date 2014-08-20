@@ -22,9 +22,6 @@ from exceptions import MalformedTemplateConfig, TemplateNotFoundException
 
 
 # noinspection PyPep8
-"""
-This canned template
-"""
 META_REDIRECT_REDIRECT_TEXT = \
     """
     <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
@@ -73,6 +70,7 @@ META_REDIRECT_GOOGLE_ANALYTICS = \
     </html>
     """
 
+BLANK_TEMPLATE = ""
 
 def get_template(template_config):
     """

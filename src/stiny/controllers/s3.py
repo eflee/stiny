@@ -3,6 +3,7 @@ from StringIO import StringIO
 from datetime import datetime
 
 import boto.s3
+import boto.s3.key
 
 from ..exceptions import TinyUrlDoesNotExistException, TinyURLExistsException
 from controller import Controller
@@ -17,7 +18,8 @@ class S3Controller(Controller):
     in place that supports the expiration rules of the StaticURLs
     """
 
-    def __init__(self, bucket_name, region, aws_access_key_id, aws_secret_access_key, compress=True, *args, **kwargs):
+    def __init__(self, bucket_name, region, aws_access_key_id, aws_secret_access_key,
+                 compress=True, http_redirect=False, *args, **kwargs):
         """
         :param template: The template string or Template instance for the jinja2 template used to create the
         contents of the tiny
@@ -29,6 +31,12 @@ class S3Controller(Controller):
         :param str region: The S3 region to connect to e.g. us-west-2
         :param str aws_access_key_id: The AWS Access Key Id to Authentication
         :param str aws_secret_access_key: The AWS Access Key Id to Authentication
+        :param bool compress: Gzip compress the file contents
+        :param bool http_redirect: Use a 301 redirect and generate no file content
+
+        .. note::
+        Enabling http_redirect will disable compression (as there is not content), will store zero-byte objects and \
+        if not compatible with analytics
         """
         super(S3Controller, self).__init__(*args, **kwargs)
 
@@ -37,7 +45,8 @@ class S3Controller(Controller):
                                           aws_secret_access_key=aws_secret_access_key)
 
         self._bucket = _conn.get_bucket(bucket_name, validate=False)
-        self._compression = compress
+        self._compression = compress and not http_redirect
+        self._http_redirect = http_redirect
 
     def get(self, tiny_uri):
         """
@@ -78,16 +87,18 @@ class S3Controller(Controller):
         if url.tiny_text is None:
             self._select_tiny_text(url)
 
+        headers = {}
         if not self.exists(url) or self.overwrite:
             tiny_key = self._bucket.new_key(key_name=url.get_tiny_uri())
-
             tiny_key.set_metadata("tiny_url", url.url)
             tiny_key.set_metadata("Content-Type", "text/html")
-            if self._compression:
+            if self._http_redirect:
+                headers['x-amz-website-redirect-location'] = url.url
+            elif self._compression:
                 tiny_key.set_metadata("Content-Encoding", "gzip")
 
             sio = self._get_contents_fp(url)
-            tiny_key.set_contents_from_file(fp=sio, policy="public-read")
+            tiny_key.set_contents_from_file(fp=sio, policy="public-read", headers=headers)
             sio.close()
 
             url.last_modified = datetime.now()
@@ -101,7 +112,9 @@ class S3Controller(Controller):
         :type url: stiny.url.URL
         """
 
-        if self._compression:
+        if self._http_redirect:
+            sio = StringIO()
+        elif self._compression:
             sio = StringIO()
             gio = gzip.GzipFile(
                 filename=url.tiny_text, mode='wb', fileobj=sio)

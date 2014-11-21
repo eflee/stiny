@@ -3,8 +3,8 @@ class Analytics(object):
     Simple containing object for the anaytics ID to be passed into the jinja2 template
     """
 
-    def __init__(self, id):
+    def __init__(self, analytics_id):
         """
-        :param str id: The google analytics ID
+        :param str analytics_id: The google analytics ID
         """
-        self.id = id
+        self.analytics_id = analytics_id

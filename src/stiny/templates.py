@@ -63,7 +63,7 @@ META_REDIRECT_GOOGLE_ANALYTICS = \
           m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
           })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
 
-          ga('create', '{{ analytics.id }}', 'auto');
+          ga('create', '{{ analytics.analytics_id }}', 'auto');
           ga('send', 'pageview', { 'title': 'target:{{ url.url }}'});
         </script>
     </head>
@@ -71,6 +71,7 @@ META_REDIRECT_GOOGLE_ANALYTICS = \
     """
 
 BLANK_TEMPLATE = ""
+
 
 def get_template(template_config):
     """

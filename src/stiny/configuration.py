@@ -27,6 +27,7 @@ def bool_str(value):
         raise Invalid("Value must be True or False")
     return value.upper() == "TRUE"
 
+
 def valid_template_value(value):
     """
     Validation function for template type in configuration schema

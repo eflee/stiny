@@ -44,6 +44,7 @@ def main():
     Also handles error-exit conditions from exceptions thrown by library.
     :return:
     """
+    # noinspection PyPep8
     try:
         args = docopt.docopt(__doc__)
 
@@ -86,10 +87,10 @@ def main():
 
     except (InvalidTinyTextException,  # If the tiny text provided is not valid
             InvalidURLException,  # If the url provided is not valid
-            MalformedTemplateConfig,  #If the template config value does not begin with CANNED: or FILE:
-            TemplateNotFoundException,  #If the provided template config cannot be found
-            TinyUrlDoesNotExistException,  #If we try to delete a tinyurl does not exist
-            TinyURLExistsException,  #If we try to overwrite a tiny that does exist and have not specified overwrite
+            MalformedTemplateConfig,  # If the template config value does not begin with CANNED: or FILE:
+            TemplateNotFoundException,  # If the provided template config cannot be found
+            TinyUrlDoesNotExistException,  # If we try to delete a tinyurl does not exist
+            TinyURLExistsException,  # If we try to overwrite a tiny that does exist and have not specified overwrite
             UnableToAutogenerateTinyText,  # If we get too many collisions when auto-generating the tiny text
     ) as e:
         print("ERROR:" + e.message)
@@ -97,8 +98,8 @@ def main():
 
     # These crop up in the event of issues in the config file
     except (MultipleInvalid,  # Config schema failed to validate
-            UnknownConfigError,  #There are missing config values that are not required in the schema
-            UnsupportedStorageTypeException,  #The storage type set is not implemented
+            UnknownConfigError,  # There are missing config values that are not required in the schema
+            UnsupportedStorageTypeException,  # The storage type set is not implemented
             ConfigNotFoundError  # The config file cannot be found
     ) as e:
         print("CONFIG ERROR: {}".format(e.message))
@@ -202,6 +203,7 @@ def configure(config_path):
 
     if user_confirm("Write Configuration?"):
         with open(config_path, 'w') as f:
+            # noinspection PyTypeChecker
             new_config.write(f)
 
 

@@ -4,6 +4,7 @@ from datetime import datetime
 
 import boto.s3
 import boto.s3.key
+from boto.s3.connection import SubdomainCallingFormat, OrdinaryCallingFormat
 
 from ..exceptions import TinyUrlDoesNotExistException, TinyURLExistsException
 from controller import Controller
@@ -40,9 +41,16 @@ class S3Controller(Controller):
         """
         super(S3Controller, self).__init__(*args, **kwargs)
 
+
+        if not bucket_name.islower() or '.' in bucket_name:
+            calling_format = OrdinaryCallingFormat()
+        else:
+            calling_format = SubdomainCallingFormat()
+
         _conn = boto.s3.connect_to_region(region_name=region,
                                           aws_access_key_id=aws_access_key_id,
-                                          aws_secret_access_key=aws_secret_access_key)
+                                          aws_secret_access_key=aws_secret_access_key,
+                                          calling_format = calling_format)
 
         self._bucket = _conn.get_bucket(bucket_name, validate=False)
         self._compression = compress and not http_redirect

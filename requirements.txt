@@ -1,5 +1,5 @@
 Babel==2.9.1
-Jinja2==2.7.3
+Jinja2==2.11.3
 MarkupSafe==0.23
 argparse==1.2.2
 boto==2.34.0
